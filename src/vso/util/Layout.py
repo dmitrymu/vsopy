@@ -13,12 +13,12 @@ class LayoutBase:
         self.create_ = create
         self.root_ = Path(root)
     
-    def _enforce(dir, *args, **kwargs):
+    def _enforce(dir):
         """ Decorator enforcing directory creation.
 
             dir - a method creating directory
         """
-        def enforcer(self):
+        def enforcer(self, *args, **kwargs):
             result = Path(dir(self, *args, **kwargs))
             if self.create_ and not result.exists():
                 result.mkdir(parents=True)

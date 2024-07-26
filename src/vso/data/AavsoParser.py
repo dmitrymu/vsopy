@@ -4,13 +4,14 @@ import xml.etree.ElementTree as ET
 from astropy.coordinates import SkyCoord, Angle
 from astropy.table import QTable
 
+VSX_VOTABLE_FIELDS = set([
+    'auid', 'name', 'const', 'radec2000', 'varType',
+    'maxMag', 'maxPass', 'minMag', 'minPass'
+    ])
+
 class AavsoParser:
     """ Parse data received from AAVSO HTTP APIs
     """
-    VSX_VOTABLE_FIELDS = set([
-        'auid', 'name', 'const', 'radec2000', 'varType',
-        'maxMag', 'maxPass', 'minMag', 'minPass'
-        ])
 
 
     def __init__(self) -> None:
@@ -47,7 +48,6 @@ class AavsoParser:
             raise Exception(f"Expected one row in VSX VOTABLE, found {num_rows}")
         
         fields = [(name.attrib['id'], value.text)
-            
                   for name, value in zip(table.iter('FIELD'),
                                          rows[0].iter('TD'))]
         
@@ -61,5 +61,5 @@ class AavsoParser:
                     else float(value) if name in ['maxMag', 'minMag']
                       else value]
                   for name, value in fields
-                  if name in AavsoParser.VSX_VOTABLE_FIELDS}
+                  if name in VSX_VOTABLE_FIELDS}
         return QTable(result)

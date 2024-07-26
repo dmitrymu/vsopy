@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 import unittest
 from vso.data import AavsoParser
 
-class LayoutBaseTest(unittest.TestCase):
+class AavsoParserTest(unittest.TestCase):
 
     def test_std_fields(self):
         input="""
@@ -78,3 +78,4 @@ class LayoutBaseTest(unittest.TestCase):
         self.assertEqual(star['name'][0], 'SX UMa')
         self.assertEqual(star['radec2000'][0].ra.value, 201.55608333)
         self.assertEqual(star['radec2000'][0].dec.value, 56.25697222)
+
