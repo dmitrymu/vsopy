@@ -20,4 +20,9 @@ implemented as a set command-line utilities.
 
 ## Installation
 
+Pre-requisites: Python 3, venv:
+
 Clone the repository from [GitHub](https://github.com/dmitrymu/vsopy).
+From the repository directory run `./init.sh`. Alternatively from VS code:
+`Ctrl+Shift+P` -> `Python: Create Environment...` and mark checkbox for
+`requirements.txt` when prompted to select dependencies.
