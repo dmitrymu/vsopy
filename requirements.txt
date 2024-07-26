@@ -1,2 +1,3 @@
+pytest
 astropy[recommended]
 ccdproc
