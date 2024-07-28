@@ -101,8 +101,7 @@ class AavsoParser:
                         dtype=[('mag', 'f4'), ('err', 'f4')])
                  for band in band_set}
         
-        # for _, col in bands.items():
-        #     col.mask = np.isnan(col['mag'])
+        # TODO: explore masked columns
 
         result = dict(
             auid=[star['auid'] for star in chart['photometry']],

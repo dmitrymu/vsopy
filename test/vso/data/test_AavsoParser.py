@@ -95,30 +95,6 @@ class AavsoParserTest(unittest.TestCase):
               {"band":"Ic","mag":7.488,"error":0.083},{"band":"J","mag":6.599,"error":0.005},
               {"band":"H","mag":6.032,"error":0.011},{"band":"K","mag":5.918,"error":0.013}],
               "comments":""},
-    {"auid":"000-BCH-053","ra":"19:32:52.34","dec":"56:02:20.6","label":"93",
-     "bands":[{"band":"V","mag":9.252,"error":0.037},{"band":"B","mag":10.0,"error":0.058},
-              {"band":"Ic","mag":8.425,"error":0.064},{"band":"J","mag":7.941,"error":0.015},
-              {"band":"H","mag":7.582,"error":0.023},{"band":"K","mag":7.496,"error":0.015}],
-              "comments":""},
-    {"auid":"000-BCH-200","ra":"19:34:58.27","dec":"56:24:20.7","label":"97",
-     "bands":[{"band":"V","mag":9.708,"error":0.04},{"band":"B","mag":10.794,"error":0.075},
-              {"band":"Ic","mag":8.514,"error":0.073},{"band":"J","mag":7.705,"error":0.023},
-              {"band":"H","mag":7.188,"error":0.011},{"band":"K","mag":7.051,"error":0.013}],
-              "comments":""},
-    {"auid":"000-BCH-080","ra":"19:33:11.13","dec":"56:24:53.8","label":"100",
-     "bands":[{"band":"V","mag":10.005,"error":0.032},{"band":"B","mag":11.431,"error":0.042},
-              {"band":"Rc","mag":9.249,"error":0.045},{"band":"Ic","mag":8.591,"error":0.049},
-              {"band":"J","mag":7.566,"error":0.025},{"band":"H","mag":6.908,"error":0.041},
-              {"band":"K","mag":6.768,"error":0.015}],"comments":""},
-    {"auid":"000-BJR-391","ra":"19:31:53.20","dec":"56:33:08.1","label":"103",
-     "bands":[{"band":"V","mag":10.347,"error":0.03},{"band":"B","mag":11.309,"error":0.045},
-              {"band":"Rc","mag":9.841,"error":0.06},{"band":"Ic","mag":9.38,"error":0.066}],
-              "comments":null},
-    {"auid":"000-BCH-014","ra":"19:31:53.75","dec":"56:23:55.6","label":"106",
-     "bands":[{"band":"V","mag":10.579,"error":0.016},{"band":"B","mag":11.831,"error":0.019},
-              {"band":"Rc","mag":9.941,"error":0.021},{"band":"Ic","mag":9.408,"error":0.024},
-              {"band":"J","mag":8.563,"error":0.027},{"band":"H","mag":7.908,"error":0.027},
-              {"band":"K","mag":7.82,"error":0.011}],"comments":""},
     {"auid":"000-BMS-017","ra":"19:32:45.40","dec":"56:23:19.5","label":"109",
      "bands":[{"band":"V","mag":10.935,"error":0.029},{"band":"B","mag":11.141,"error":0.046},
               {"band":"Rc","mag":10.834,"error":0.049},{"band":"Ic","mag":10.713,"error":0.054}],
@@ -134,9 +110,13 @@ class AavsoParserTest(unittest.TestCase):
     {"auid":"000-BMS-020","ra":"19:33:23.18","dec":"56:18:17.1","label":"118",
      "bands":[{"band":"V","mag":11.768,"error":0.017},{"band":"B","mag":12.157,"error":0.046},
               {"band":"Rc","mag":11.532,"error":0.024},{"band":"Ic","mag":11.329,"error":0.038}],
-              "comments":""},
-    {"auid":"000-BMS-021","ra":"19:31:39.47","dec":"56:27:30.2","label":"122","bands":[{"band":"V","mag":12.23,"error":0.027},{"band":"B","mag":13.08,"error":0.055},{"band":"Rc","mag":11.754,"error":0.043},{"band":"Ic","mag":11.321,"error":0.06}],"comments":""}],"auid":"000-BCH-041","ra":"19:32:29.31","dec":"56:23:17.5"}
+              "comments":""}
+    ],
+ "auid":"000-BCH-041","ra":"19:32:29.31","dec":"56:23:17.5"}
 """
         p = AavsoParser()
         chart = p.parse_chart(input)
-        print(chart['U', 'Rc'])
+        self.assertEqual(len(chart), 6)
+        self.assertEqual(set(chart.colnames), 
+                         set(['auid', 'radec2000', 'U', 'B', 'V', 'Rc', 'Ic']))
+    
