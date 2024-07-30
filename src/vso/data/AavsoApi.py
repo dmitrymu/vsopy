@@ -1,10 +1,13 @@
 import io
+import astropy.units as u
 from astropy.utils.data import download_file
 
 
 def name_for_api(star_name):
     return star_name.replace(' ', '+')
 
+def q_value(q):
+    return q.value if hasattr(q, 'value') else q
 
 class AavsoApi:
     """ Encapsulate HTTP APIs to AAVSO database.
@@ -38,14 +41,19 @@ class AavsoApi:
                 f"&ident={name_for_api(star_name)}")
 
     @_fetch_content
-    def get_chart_stars(self, star_name: str, fov=60, maglimit=16) -> str:
+    def get_star_chart(self, star_name: str, fov=60*u.arcmin, maglimit=16*u.mag) -> str:
         return ("https://www.aavso.org/apps/vsp/api/chart/?format=json"
-                f"&star={name_for_api(star_name)}&fov={fov}&maglimit={maglimit}")
+                f"&star={name_for_api(star_name)}&fov={q_value(fov)}&maglimit={q_value(maglimit)}")
 
     @_fetch_content
-    def get_std_field_stars(self, ra, dec, fov=60, maglimit=16) -> str:
+    def get_std_field_chart(self, ra=0, dec=0, fov=60, maglimit=16) -> str:
         return ("https://www.aavso.org/apps/vsp/api/chart/?format=json&special=std_field"
-                f"&ra={ra}&dec={dec}&fov={fov}&maglimit={maglimit}")
+                f"&ra={q_value(ra)}&dec={q_value(dec)}"
+                f"&fov={q_value(fov)}&maglimit={q_value(maglimit)}")
+
+    @_fetch_content
+    def get_chart_by_id(self, chart_id: str) -> str:
+        return (f"https://apps.aavso.org/vsp/api/chart/{chart_id}/?format=json")
 
     @_fetch_content
     def get_std_fields(self) -> str:

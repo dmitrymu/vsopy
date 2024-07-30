@@ -24,7 +24,7 @@ class AavsoParserTest(unittest.TestCase):
         self.assertCountEqual(fields['name'], ['NGC 1252', 'M67', 'NGC 3532'])
         self.assertCountEqual(fields['radec2000'].ra.value,
                               [47.704167, 132.838375, 166.3875])
-        
+
     def test_vsx_votable(self):
         input = """
 <VOTABLE version="1.0">
@@ -117,6 +117,6 @@ class AavsoParserTest(unittest.TestCase):
         p = AavsoParser()
         chart = p.parse_chart(input)
         self.assertEqual(len(chart), 6)
-        self.assertEqual(set(chart.colnames), 
+        self.assertEqual(set(chart.colnames),
                          set(['auid', 'radec2000', 'U', 'B', 'V', 'Rc', 'Ic']))
-    
+        self.assertDictEqual(chart.meta, dict(chart_id='X37313LN'))

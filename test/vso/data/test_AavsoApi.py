@@ -28,12 +28,16 @@ class AavsoApiTest(unittest.TestCase):
             "http://www.aavso.org/vsx/index.php?view=query.votable&ident=SX+UMa"
         )
         self.assertEqual(
-            api.get_chart_stars('SX UMa', fov=7.5, maglimit=17.5),
+            api.get_star_chart('SX UMa', fov=7.5, maglimit=17.5),
             ("https://www.aavso.org/apps/vsp/api/chart/"
              "?format=json&star=SX+UMa&fov=7.5&maglimit=17.5")
         )
         self.assertEqual(
-            api.get_std_field_stars(0.42, 42.0, fov=7.5, maglimit=17.5),
+            api.get_std_field_chart(0.42, 42.0, fov=7.5, maglimit=17.5),
             ("https://www.aavso.org/apps/vsp/api/chart/"
              "?format=json&special=std_field&ra=0.42&dec=42.0&fov=7.5&maglimit=17.5")
+        )
+        self.assertEqual(
+            api.get_chart_by_id('ABCD'),
+            ("https://apps.aavso.org/vsp/api/chart/ABCD/?format=json")
         )

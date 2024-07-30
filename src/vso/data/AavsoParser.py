@@ -39,7 +39,7 @@ class AavsoParser:
         """ Parse star data from AAVSO VSX
 
             Parameters:
-        
+
             xml: str
                 XML VOTABLE text.
 
@@ -67,14 +67,14 @@ class AavsoParser:
                             Angle(tokens[1], unit=u.deg))
 
         result = {name:
-                  [parse_coord(value) if name == 'radec2000'
-                   else float(value) if name in ['maxMag', 'minMag']
-                      else value]
+                  [parse_coord(value)] if name == 'radec2000'
+                   else [float(value)]*u.mag if name in ['maxMag', 'minMag']
+                      else [value]
                   for name, value in fields
                   if name in VSX_VOTABLE_FIELDS}
         return QTable(result)
 
-    def parse_chart(self, text, 
+    def parse_chart(self, text,
                     band_set=set(['U', 'B', 'V', 'Rc', 'Ic'])):
         """ Parse chart photometry data from AAVSO VSP
         """
@@ -100,7 +100,7 @@ class AavsoParser:
                         unit=u.mag,
                         dtype=[('mag', 'f4'), ('err', 'f4')])
                  for band in band_set}
-        
+
         # TODO: explore masked columns
 
         result = dict(
