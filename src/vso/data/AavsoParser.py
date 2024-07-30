@@ -18,10 +18,14 @@ class AavsoParser:
     def __init__(self) -> None:
         pass
 
-    def parse_std_fields(self, text):
-        """ Parse standard fields list.
+    def parse_std_fields(self, text: str) -> QTable:
+        """Parse standard fields list
 
-            Expects JSON text returned by AavsoApi.fetch_std_fields
+        Args:
+            text (str): JSON text returned by AavsoApi.get_std_fields
+
+        Returns:
+            QTable: List of standard fields
         """
         data = json.loads(text)
 
@@ -35,26 +39,25 @@ class AavsoParser:
         )
         return QTable(result)
 
-    def parse_vsx_votable(self, xml):
-        """ Parse star data from AAVSO VSX
+    def parse_vsx_votable(self, xml: str) -> QTable:
+        """Parse star data from AAVSO VSX
 
-            Parameters:
+        Args:
+            xml (str): XML VOTABLE text from AavsoApi.get_vsx_votable
 
-            xml: str
-                XML VOTABLE text.
+        Raises:
+            RuntimeError: if VOTABLE is empty or contains multiple strings
 
-            Returns:
-
-            table: QTable
-                Single-row table containing AAVSO AUID, star name and coordinates,
-                and other data.
+        Returns:
+            QTable: Single-row table containing AAVSO AUID, star name and coordinates,
+                and other data
         """
         root = ET.fromstring(xml)
         table = root.find('RESOURCE').find('TABLE')
         rows = list(table.find('DATA').find('TABLEDATA').iter('TR'))
         num_rows = len(rows)
         if num_rows != 1:
-            raise Exception(
+            raise RuntimeError(
                 f"Expected one row in VSX VOTABLE, found {num_rows}")
 
         fields = [(name.attrib['id'], value.text)
@@ -74,13 +77,25 @@ class AavsoParser:
                   if name in VSX_VOTABLE_FIELDS}
         return QTable(result)
 
-    def parse_chart(self, text,
-                    band_set=set(['U', 'B', 'V', 'Rc', 'Ic'])):
-        """ Parse chart photometry data from AAVSO VSP
+    def parse_chart(self, text: str,
+                    band_set=set(['U', 'B', 'V', 'Rc', 'Ic'])) -> QTable:
+        """Parse chart photometry data from AAVSO VSP
+
+        Args:
+            text (str): JSON text returned by AavsoApi.get_star_chart,
+                        AavsoApi.get_std_field_chart, or AavsoApi.get_chart_by_id
+            band_set ([str], optional): list of bands to be stored.
+                   Defaults to set(['U', 'B', 'V', 'Rc', 'Ic']).
+
+        Raises:
+            RuntimeError: if received data indicates any error.
+
+        Returns:
+            QTable: photometry data
         """
         chart = json.loads(text)
         if 'errors' in chart:
-            raise Exception(f"Error from AAVSO for target {meta['name']}: "
+            raise RuntimeError(f"Error from AAVSO API for target {meta['name']}: "
                             f"{';'.join(chart['errors'])}")
         if len(chart['photometry']) == 0:
             return None
