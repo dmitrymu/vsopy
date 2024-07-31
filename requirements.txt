@@ -1,4 +1,6 @@
 pytest
 pytest-cov
+psutil
 astropy[recommended]
 ccdproc
+photutils

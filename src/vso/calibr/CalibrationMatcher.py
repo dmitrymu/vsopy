@@ -11,7 +11,7 @@ FRAME_DARK = 'Dark'
 FRAME_FLAT = 'Flat'
 FRAME_LIGHT = 'Light'
 
-MATCHER_KEYWORDS = ['instrume', 'gain', 'xbinning', 'ybinning', 'offset', 'filter'
+MATCHER_KEYWORDS = ['instrume', 'gain', 'xbinning', 'ybinning', 'offset', 'filter',
                     'ccd-temp', 'date-obs', 'exptime', 'file']
 
 Calibration = namedtuple('Calibration', ['bias', 'dark', 'flat'])
@@ -29,8 +29,7 @@ class FrameCollection:
             frame_type (str): frame type
         """
         self.dir_ = Path(calibr_dir)
-        self.ifc_ = ccdp.ImageFileCollection(self.dir_).filter(frame=frame_type,
-                                                               keywords=MATCHER_KEYWORDS)
+        self.ifc_ = ccdp.ImageFileCollection(self.dir_).filter(frame=frame_type)
 
     def filter(self, header):
         """Filter master frames compatible with the header
@@ -117,7 +116,7 @@ class CalibrationMatcher:
                                None)
         elif header['frame'] == FRAME_LIGHT:
             return Calibration(None if not scale else self.load_image(self.match_bias(header)),
-                               self.match_dark(header),
-                               self.match_flat(header))
+                               self.load_image(self.match_dark(header)),
+                               self.load_image(self.match_flat(header)))
         else:
             raise RuntimeError(f"Unsupported frame type {header['frame']}")
