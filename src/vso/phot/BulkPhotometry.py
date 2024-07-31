@@ -7,6 +7,7 @@ import logging
 from ..calibr import CalibrationMatcher
 from ..reduce import load_and_solve, calibrate_image
 from .measure import measure_photometry
+from.BatchAggregator import BatchAggregator
 from astropy.table import QTable, vstack
 import psutil
 import json
@@ -61,15 +62,15 @@ class BulkPhotometry:
 
     @property
     def star_table_path(self):
-        return self.session_dir_ / 'stars-1.ecsv'
+        return self.session_dir_ / 'stars.ecsv'
 
     @property
     def image_table_path(self):
-        return self.session_dir_ / 'images-1.ecsv'
+        return self.session_dir_ / 'images.ecsv'
 
     @property
     def blacklist_path(self):
-        return self.session_dir_ / 'blacklist-1.json'
+        return self.session_dir_ / 'blacklist.json'
 
     @staticmethod
     def worker_init(me):
@@ -91,6 +92,8 @@ class BulkPhotometry:
                                         self.aperture_.r_in,
                                         self.aperture_.r_out)
         band = image.header['filter']
+        phot_table['id'] = [id]*len(phot_table)
+        phot_table['band'] = [band]*len(phot_table)
         file_info = {
             'id': id,
             'path': str(file_path),
@@ -141,14 +144,15 @@ class BulkPhotometry:
             json.dump(self.blacklist_, file, indent=2)
 
         zipped_result = tuple(zip(*result))
-        if  len(zipped_result) == 0:
-            return
-        phot_list, info_list = zipped_result
+        if  len(zipped_result) > 0:
+            phot_list, info_list = zipped_result
 
-        self.star_table_ = append_table(self.star_table_, vstack(phot_list))
+            self.star_table_ = append_table(self.star_table_, vstack(phot_list))
+            self.image_table_ = append_table(self.image_table_, QTable(info_list))
+            self.star_table_.write(self.star_table_path, format='ascii.ecsv', overwrite=True)
+            self.image_table_.write(self.image_table_path, format='ascii.ecsv', overwrite=True)
 
-        self.image_table_ = append_table(self.image_table_, QTable(info_list))
+        aggr = BatchAggregator()
+        result = aggr.aggregate(self.image_table_, self.star_table_)
 
-        self.star_table_.write(self.star_table_path, format='ascii.ecsv', overwrite=True)
-        self.image_table_.write(self.image_table_path, format='ascii.ecsv', overwrite=True)
-
+        result.write(self.session_dir_ / 'photometry.ecsv')
