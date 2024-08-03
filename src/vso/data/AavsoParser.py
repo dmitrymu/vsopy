@@ -93,6 +93,7 @@ class AavsoParser:
         Returns:
             QTable: photometry data
         """
+        print(text)
         chart = json.loads(text)
         if 'errors' in chart:
             raise RuntimeError(f"Error from AAVSO API for target {meta['name']}: "
@@ -129,8 +130,11 @@ class AavsoParser:
         )
 
         result.update(bands)
+        meta=dict(
+            chart_id=chart['chartid'],
+            auid=chart['auid']
+        )
+        if 'star' in chart:
+            meta['star'] = chart['star']
 
-        return QTable(result,
-                      meta=dict(
-                          chart_id=chart['chartid']
-                      ))
+        return QTable(result, meta=meta)
