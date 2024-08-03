@@ -84,6 +84,17 @@ class SimpleTransform:
     def create(batch, band_a: str, band_b: str):
         """Create transform from star photometry for two images
 
+        Given an ensemble of stars with both standard (A, B) and instrumental
+        (a,b) magnitudes known for two bands, we fit two linear regressions:
+
+        (1)  a - b = T_ab * (A - B) + C_ab
+        (2)  A-a = T_a * (A - B) + C_a
+
+        T_ab determines transformation of instrumental color index to standard
+        color index.  T_a corrects transformation from instrumental to standard
+        magnitude with respect to color index. See comment on
+        SimpleTransform.__call__ for details.
+
         Args:
             batch (table-like): instrumental and standard magnitudes for image pair
             band_a (str): band (filter) of the first image
