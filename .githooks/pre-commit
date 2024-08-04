@@ -1,0 +1,23 @@
+#!/bin/sh
+# Pre-commit hook.  
+# It's cleaning up all output data in Jupyter notebooks.
+# It may result in empty commits.
+echo "Executing pre-commit hook"
+venv_activate="$PWD/.venv/bin/activate"
+if [ -f $venv_activate ]; then
+    # 'jupyter nbconvert' must be run in venv context
+    echo "Virtual environment found at .venv"
+    source $venv_activate
+
+    changeset=$(git diff --cached --name-only --diff-filter=ACM)
+    for name in $changeset;
+    do
+        if [ "${name##*.}" = "ipynb" ]; then
+            echo "Cleaning up $name"
+            # clean up notebook and modify commit
+            jupyter nbconvert --ClearOutputPreprocessor.enabled=True --inplace $name
+            git add $name
+        fi
+    done
+fi
+
