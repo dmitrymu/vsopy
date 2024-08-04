@@ -1,5 +1,5 @@
-#!/bin/sh
-# Pre-commit hook.  
+#!/bin/bash
+# Pre-commit hook.
 # It's cleaning up all output data in Jupyter notebooks.
 # It may result in empty commits.
 echo "Executing pre-commit hook"
