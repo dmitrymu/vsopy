@@ -6,13 +6,13 @@ class LayoutBase:
     """
     def __init__(self, root, create=True):
         """ Set up layout at root directory.
-            
+
             root - path to root directory.
             create - whether to enforce directory creation.
         """
         self.create_ = create
         self.root_ = Path(root)
-    
+
     def _enforce(dir):
         """ Decorator enforcing directory creation.
 
@@ -40,15 +40,15 @@ class TargetLayout(LayoutBase):
     @LayoutBase._enforce
     def lights_dir(self):
         return self.root_dir / 'Light'
-    
-class ImageLayout(LayoutBase):  
+
+class ImageLayout(LayoutBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
     def get_images(self, tag: str, name: str) ->Path:
         return TargetLayout(self.root_dir / Path(tag) / Path(name),
                            create=self.create_)
-                           
+
 
 
 class WorkLayout(LayoutBase):
@@ -59,9 +59,18 @@ class WorkLayout(LayoutBase):
     @LayoutBase._enforce
     def tmp_dir(self):
         return self.root_dir / 'tmp'
-    
+
+    @property
+    @LayoutBase._enforce
+    def charts_dir(self):
+        return self.root_dir / 'charts'
+
     @property
     @LayoutBase._enforce
     def calibr_dir(self):
         return self.root_dir / 'calibr'
+
+    @LayoutBase._enforce
+    def get_session(self, tag: str, name: str) ->Path:
+        return self.root_dir / Path('session') / Path(tag) / Path(name)
 
