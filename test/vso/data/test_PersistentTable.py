@@ -147,3 +147,36 @@ class PersistentTableTest(unittest.TestCase):
         self.assertDictEqual(dict(table.row_by_key('name', 'a')), row1)
         self.assertDictEqual(dict(table.row_by_key('id', 2)), row2)
         self.assertIsNone(table.row_by_key('id', 42))
+
+    @patch(f"vso.data.PersistentTable.QTable.write")
+    def test_row_by_keys(self, _):
+        template = dict(
+            name=[''],
+            id=[0],
+            value=[0]
+        )
+        row1 = dict(
+            name='a',
+            id=1,
+            value=42
+        )
+        row2 = dict(
+            name='a',
+            id=3,
+            value=44
+        )
+        row3 = dict(
+            name='b',
+            id=2,
+            value=4242
+        )
+        table = PersistentTable(TABLE_PATH,
+                                initializer=lambda: PersistentTable.init_from_template(template))
+        t = table.get()
+        self.assertEqual(len(t), 0)
+        t = table.append(row1)
+        t = table.append(row2)
+        t = table.append(row3)
+        self.assertEqual(len(t), 3)
+        self.assertDictEqual(dict(table.row_by_keys(dict(name='a', value=42))), row1)
+        self.assertIsNone(table.row_by_keys(dict(name='a', value=40)))

@@ -132,8 +132,9 @@ class AavsoParser:
         result.update(bands)
         meta=dict(
             chart_id=chart['chartid'],
-            auid=chart['auid']
         )
+        if 'auid' in chart:
+            meta['auid'] = chart['auid']
         if 'star' in chart:
             meta['star'] = chart['star']
 

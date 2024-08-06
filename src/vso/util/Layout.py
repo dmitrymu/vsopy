@@ -32,6 +32,15 @@ class LayoutBase:
         """
         return self.root_
 
+class Session:
+    def __init__(self, tag=None, name=None):
+        self.tag_ = tag
+        self.name_ = name
+
+    @property
+    def rel_path(self):
+        return Path(self.tag_) / Path(self.name_)
+
 class TargetLayout(LayoutBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -45,9 +54,26 @@ class ImageLayout(LayoutBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def get_images(self, tag: str, name: str) ->Path:
-        return TargetLayout(self.root_dir / Path(tag) / Path(name),
+    def get_images(self, session) ->Path:
+        return TargetLayout(self.root_dir / session.rel_path,
                            create=self.create_)
+
+class SessionLayout(LayoutBase):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    @property
+    @LayoutBase._enforce
+    def solved_dir(self):
+        return self.root_dir / 'solved'
+
+    @property
+    def chart_file_path(self):
+        return self.root_dir / 'chart.ecsv'
+
+    @property
+    def settings_file_path(self):
+        return self.root_dir / 'settings.ecsv'
 
 
 
@@ -70,7 +96,7 @@ class WorkLayout(LayoutBase):
     def calibr_dir(self):
         return self.root_dir / 'calibr'
 
-    @LayoutBase._enforce
-    def get_session(self, tag: str, name: str) ->Path:
-        return self.root_dir / Path('session') / Path(tag) / Path(name)
+    def get_session(self, session) ->Path:
+        return SessionLayout(self.root_dir / Path('session') / session.rel_path,
+                             create=self.create_)
 

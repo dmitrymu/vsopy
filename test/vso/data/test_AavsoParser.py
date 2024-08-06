@@ -119,4 +119,7 @@ class AavsoParserTest(unittest.TestCase):
         self.assertEqual(len(chart), 6)
         self.assertEqual(set(chart.colnames),
                          set(['auid', 'radec2000', 'U', 'B', 'V', 'Rc', 'Ic']))
-        self.assertDictEqual(chart.meta, dict(chart_id='X37313LN'))
+        self.assertDictEqual(chart.meta,
+                             dict(chart_id='X37313LN',
+                                  auid='000-BCH-041',
+                                  star='XZ Cyg'))
