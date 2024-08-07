@@ -1,3 +1,4 @@
+import numpy as np
 from pathlib import Path
 from astropy.table import QTable
 
@@ -77,4 +78,22 @@ class PersistentTable:
                 KeyError if 'key' matches multiple rows.
         """
         rows = self.table_[self.table_[field] == key]
+        return None if len(rows) == 0 else rows[0] if len(rows) == 1 else KeyError(f"{len(rows)} rows found for {field}={key}")
+
+    def row_by_keys(self, keys):
+        """ Get row by the value of the field.
+
+            Parameters:
+            field: the name of the table column.
+            key: the value, type must match the data type of the column
+
+            Returns:
+            row:  None of table does not have table[field]==key;
+                  row if key matches exactly one value in 'field'
+
+            Raises:
+                KeyError if 'key' matches multiple rows.
+        """
+        filter = np.all([self.get()[field] == val for field, val in keys.items()], axis=0)
+        rows = self.get()[filter]
         return None if len(rows) == 0 else rows[0] if len(rows) == 1 else KeyError(f"{len(rows)} rows found for {field}={key}")

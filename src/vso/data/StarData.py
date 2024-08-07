@@ -98,7 +98,7 @@ class StarData:
         """
         return name in self.std_fields['name']
 
-    def get_chart(self, name, fov=None, maglimit=15.0*u.mag):
+    def get_chart(self, name, fov=None, maglimit=16.0*u.mag):
         """ Get photometry data for either star or standard field.
 
             Parameters:
@@ -109,12 +109,15 @@ class StarData:
             Returns:
             chart:  QTable containing photometry data.
         """
-        if name not in self.charts['name']:
+        real_fov = self.std_fields_.row_by_key('name', name)['fov'] if self.is_std_field(name) else fov
+
+        cached = self.charts_.row_by_keys(
+                dict(name=name, fov=real_fov, maglimit=maglimit)
+            )
+        if not cached:
             text = None
-            real_fov = fov
             if self.is_std_field(name):
                 field = self.std_fields_.row_by_key('name', name)
-                real_fov = field['fov']
                 text = self.api_.get_std_field_chart(
                     field['radec2000'].ra,
                     field['radec2000'].dec,
@@ -138,6 +141,6 @@ class StarData:
             )
             return self.charts_cache_[id].get()
         else:
-            return self.load_chart(self.charts_.row_by_key('name', name)['id'])
+            return self.load_chart(cached['id'])
 
 

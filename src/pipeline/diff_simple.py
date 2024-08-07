@@ -68,7 +68,7 @@ def main():
        report.header()
        report.body(bv, 'B')
        report.body(bv if V_BV_err < V_VR_err else vr, 'V')
-       report.body(vr if R_VR_err < R_RI_err else vr, 'Rc')
+       report.body(vr if R_VR_err < R_RI_err else ri, 'Rc')
        report.body(ri, 'Ic')
 
     return 0

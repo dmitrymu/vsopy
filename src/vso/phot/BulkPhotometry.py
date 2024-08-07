@@ -43,6 +43,35 @@ def append_table(table1, table2):
 
 
 class BulkPhotometry:
+    """Extract photometry data from images in two-level image directory.
+
+    Image directory is assumed to contain per-band subdirectories.
+    Calibration images are stored in a separate directory. Parameters and
+    results are placed in a separate directory.
+
+    Source image is calibrated and plate solved before flux measurement.
+    Command line version of ASTAP (https://www.hnsky.org/astap.htm) is
+    used as plate solver. Plate solving results are cached in a
+    subdirectory of session directory to speed up repeated processing.
+
+    Image processing is parallelized, currently one process per 1.5 GB
+    of free memory. (TODO: pass number of process to constructor).
+
+    Results of the process are three tables stored in the session directory.
+    * stars.ecsv - per-star photometry data
+    * images - per-image data like air mass and observation time
+    * photometry - per-band photometry grouped into multi-band observations
+                   (see BatchAggregator for details).
+
+    The actual output is the third file that is the input for differential
+    photometry algorithms.
+
+    First two files are intermediate results. If processing is run repeatedly,
+    already processed files are skipped and new results are appended.
+
+    Files that fail processing are marked in black list stored in the session
+    directory and skipped if processing repeats.
+    """
     matcher = None
 
     def __init__(self, session_dir, calibr_dir):
@@ -80,7 +109,20 @@ class BulkPhotometry:
     def was_not_processed(self, id, file_path):
         return str(file_path) not in self.blacklist_ and id not in self.processed_
 
-    def process_image(self, file_path, id):
+    def process_image(self, file_path, id: int):
+        """Process a single image.
+
+        Load, plate solve, calibrate, and measure photometry.
+
+        Args:
+            file_path (path-like): path to the image
+            id (int): image ID.
+
+        Returns:
+            tuple: First element is QTable containing per-star photometry data
+                   Second element is a dictionary  containing the image properties
+                   (id, path, band, exposure, gain, observation time, air mass).
+        """
         print(f"processing #{id}: {file_path}")
         image = load_and_solve(file_path, self.solved_dir_)
         cal = BulkPhotometry.matcher.match(image.header)
@@ -89,8 +131,7 @@ class BulkPhotometry:
                                   flat=cal.flat)
         phot_table = measure_photometry(reduced, self.stars_,
                                         self.aperture_.r,
-                                        self.aperture_.r_in,
-                                        self.aperture_.r_out)
+                                        (self.aperture_.r_in, self.aperture_.r_out))
         band = image.header['filter']
         phot_table['id'] = [id]*len(phot_table)
         phot_table['band'] = [band]*len(phot_table)
@@ -106,6 +147,19 @@ class BulkPhotometry:
         return (phot_table, file_info)
 
     def process_directory(self, executor, image_dir, counter):
+        """Process images from the directory
+
+        Args:
+            executor (concurrent.futures.Executor): the interface to submit
+                                                    a concurrent task .
+            image_dir (path-like): the directory being processed
+            counter (iterable): sequence of image IDs (ID is unique
+                              per session)
+
+        Returns:
+            iterable containing pairs (path to file,
+                                       Future to get processing results)
+        """
         ifc = ccdp.ImageFileCollection(image_dir)
 
         files = [image_dir / f for f in ifc.summary['file']]
@@ -115,7 +169,17 @@ class BulkPhotometry:
                 if self.was_not_processed(id, path)]
 
 
-    def process(self, image_dir):
+    def process(self, image_dir) -> None:
+        """Process images from subdirectories of image directory.
+
+        The result is stored in session directory. Images are processed
+        in parallel using ProcessPoolExecutor (https://docs.python.org/3/library/concurrent.futures.html)
+        If the process crashes and kills its parent terminal, the reason
+        is lack of free RAM.
+
+        Args:
+            image_dir (path-like): _description_
+        """
         nw = num_workers()
         counter = itertools.count(1)
         with cf.ProcessPoolExecutor(initializer=BulkPhotometry.worker_init,

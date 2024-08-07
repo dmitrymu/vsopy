@@ -1,6 +1,15 @@
 pytest
 pytest-cov
 psutil
+
+# Astropy and associates
 astropy[recommended]
 ccdproc
 photutils
+
+# Jupyter notebooks and extensions
+ipykernel
+notebook==6.5.7
+ipywidgets
+widgetsnbextension
+jupyter_contrib_nbextensions

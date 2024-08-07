@@ -7,7 +7,21 @@ def column_mask(column):
     return column.mask if hasattr(column, 'mask') else np.full((len(column)), False)
 
 class BatchAggregator:
+    """Prepare per-image photometry for differential photometry .
+
+    The basic assumption is that filer is changed for each new image
+    (e.g. B V R B V R B V R), so images are naturally grouped into multi-band
+    batches (e,g. BVR, BVR, BVR) and every batch is a single observation
+    for differential photometry. The order of filter change must be consistent
+    inside a whole session.
+    """
     def __init__(self, filter_order=['B', 'V', 'Rc', 'Ic']) -> None:
+        """Create the processor
+
+        Args:
+            filter_order (list, optional): the order of filter change.
+                                           Defaults to ['B', 'V', 'Rc', 'Ic'].
+        """
         self.filter_order_=filter_order
 
     def active_bands(self, image_table):
@@ -17,6 +31,15 @@ class BatchAggregator:
             return [x for x in self.filter_order_ if x in set(image_table['band'])]
 
     def batch(self, bands, image_table):
+        """Combine single-band images into multi-band batches.
+
+        Args:
+            bands (iterable of str): list of bands of interest
+            image_table (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
         image_table['finish'] = image_table['time'].jd + TimeDelta(image_table['exposure']).jd
         image_table.add_index('band')
 
@@ -61,6 +84,19 @@ class BatchAggregator:
         return batches
 
     def aggregate(self, image_table, star_table):
+        """Create batches and join per-star photometry
+
+
+        Args:
+            image_table (table-like): per-image info
+                                      (band, exposure, gain, observation time, air mass)
+            star_table (table-like): per-star photometry
+                                     (auid, band, magnitude, SNR, peak)
+
+        Returns:
+            QTable: batched photometry
+                    (auid, band, mag B, SNR B, peak B, mag V, SNR V, ...)
+        """
         bands = self.active_bands(image_table)
         batches = self.batch(bands, image_table)
 

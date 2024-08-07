@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 import unittest
 from unittest.mock import patch
 from pathlib import Path
-from vso.util import LayoutBase, ImageLayout
+from vso.util import LayoutBase, ImageLayout, Session
 
 class LayoutBaseTest(unittest.TestCase):
 
@@ -45,8 +45,10 @@ class ImageLayoutTest(unittest.TestCase):
         root = '/home/test'
         tag='19010102'
         target='Polaris'
+        session = Session(tag=tag, name=target)
+
         l = ImageLayout(root, create=False)
-        self.assertEqual(str(l.get_images(tag, target).root_dir),
+        self.assertEqual(str(l.get_images(session).root_dir),
                          str(Path(root) / Path(tag) / Path(target)))
 
 if __name__ == '__main__':
