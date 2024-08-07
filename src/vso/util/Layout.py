@@ -68,12 +68,19 @@ class SessionLayout(LayoutBase):
         return self.root_dir / 'solved'
 
     @property
+    def blacklist_file_path(self):
+        return self.root_dir / 'blacklist.json'
+
+    @property
     def chart_file_path(self):
         return self.root_dir / 'chart.ecsv'
 
     @property
+    def centroid_file_path(self):
+        return self.root_dir / 'centroids.ecsv'
+    @property
     def settings_file_path(self):
-        return self.root_dir / 'settings.ecsv'
+        return self.root_dir / 'settings.json'
 
 
 

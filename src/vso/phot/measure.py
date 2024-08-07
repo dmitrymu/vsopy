@@ -14,7 +14,7 @@ from photutils.aperture import (ApertureStats,
                                 SkyCircularAnnulus)
 
 
-def measure_photometry(image, stars, r, r_in, r_out):
+def measure_photometry(image, stars, r_ap, r_ann):
     """Extract aperture photometry data from the image.
 
     Given the calibrated image and the list of star centroids in sky coordinates,
@@ -32,7 +32,7 @@ def measure_photometry(image, stars, r, r_in, r_out):
 
     F_{sky} = F_{sky mean} * (pixel count for central aperture)
     F_{star} = F_c - F_{sky}
-    SNR = F_{star} / \sqrt{F_star + 2 * F_sky}
+    SNR = F_{star} / \\sqrt{F_star + 2 * F_sky}
 
     To convert flux to magnitude, an arbitrary scale value F_0 = 1e6 e/s is used:
 
@@ -59,18 +59,18 @@ def measure_photometry(image, stars, r, r_in, r_out):
     if 'name' in stars.colnames:
         result['name'] = stars['name']
 
-    _, median, _ = sigma_clipped_stats(image.data, sigma=3.0)
     corrected = CCDData(image)
-    corrected.data = corrected.data - median
 
-    apr = SkyCircularAperture(stars['sky_centroid'], r=r)
+    apr = SkyCircularAperture(stars['sky_centroid'], r=r_ap)
     ap_stats = ApertureStats(corrected, apr)
+
+    r_in, r_out = r_ann
     ann = SkyCircularAnnulus(stars['sky_centroid'],
                              r_in=r_in,
                              r_out=r_out)
     ann_stats = ApertureStats(corrected, ann)
 
-    zero_level = 1_000_000 * u.electron / u.second
+    zero_level = 1_000_000 * image.unit / u.second
     exp = image.header['EXPTIME'] * u.second
     Ft = ap_stats.sum / exp
     Fb = ap_stats.sum_aper_area.value * ann_stats.mean / exp

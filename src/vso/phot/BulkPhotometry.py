@@ -131,8 +131,7 @@ class BulkPhotometry:
                                   flat=cal.flat)
         phot_table = measure_photometry(reduced, self.stars_,
                                         self.aperture_.r,
-                                        self.aperture_.r_in,
-                                        self.aperture_.r_out)
+                                        (self.aperture_.r_in, self.aperture_.r_out))
         band = image.header['filter']
         phot_table['id'] = [id]*len(phot_table)
         phot_table['band'] = [band]*len(phot_table)
