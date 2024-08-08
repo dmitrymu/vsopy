@@ -4,8 +4,7 @@ import ccdproc as ccdp
 import concurrent.futures as cf
 import itertools
 import logging
-from ..calibr import CalibrationMatcher
-from ..reduce import load_and_solve, calibrate_image
+from ..reduce import load_and_solve, calibrate_image, CalibrationMatcher
 from .measure import measure_photometry
 from.BatchAggregator import BatchAggregator
 from astropy.table import QTable, vstack
