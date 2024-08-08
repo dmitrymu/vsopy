@@ -55,8 +55,8 @@ MockIfc = namedtuple('MockIfc', ['summary'])
 
 class CalibrationMatcherTest(unittest.TestCase):
 
-    @patch('vso.calibr.CalibrationMatcher.CCDData.read')
-    @patch('vso.calibr.CalibrationMatcher.FrameCollection')
+    @patch('vso.reduce.CalibrationMatcher.CCDData.read')
+    @patch('vso.reduce.CalibrationMatcher.FrameCollection')
     def test_construct(self, mock_frames, mock_read):
 
         colls=[Mock(summary=MOCK_BIAS), Mock(summary=MOCK_DARK), Mock(summary=MOCK_FLAT)]
