@@ -12,8 +12,8 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-O', '--object', type=str, required=True, help='Object to be worked')
     parser.add_argument('-t', '--tag', type=str, required=True, help='Tag (date)')
-    parser.add_argument('-c', '--common_dir', type=str, required=True, help='File tree root')
-    parser.add_argument('-i', '--image_dir', type=str, default=None, help='Image directory')
+    parser.add_argument('-c', '--common-dir', type=str, required=True, help='File tree root')
+    parser.add_argument('-i', '--image-dir', type=str, default=None, help='Image directory')
 
     return parser.parse_args()
 
@@ -23,9 +23,9 @@ def main():
     object_dir = Path(args.tag) / args.object
 
     session_dir = args.common_dir /  Path('session') / object_dir
-    calibr_dir =  args.common_dir / Path('img') / 'calibr'
+    calibr_dir =  args.common_dir / 'calibr'
 
-    source_root = args.common_dir / Path('img') / object_dir / 'Light'
+    source_root = args.image_dir  / object_dir / 'Light'
 
     p = phot.BulkPhotometry(session_dir, calibr_dir)
     p.process(source_root)
