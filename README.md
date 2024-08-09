@@ -3,7 +3,10 @@
 This is a loose set of tools for processing variable star photometry data.
 It is based on [Astropy](https://www.astropy.org/) and affiliated packages.
 Jupyter notebooks are used as a visual interface. Batch processing is
-implemented as a set command-line utilities.
+implemented as a set command-line utilities.  This is rather research project
+then released software.
+
+See [documentation](doc/_toc.md) for details.
 
 ## Functionality
 
