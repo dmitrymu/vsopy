@@ -107,7 +107,7 @@ class CalibrationMatcher:
         if header['frame'] == FRAME_BIAS:
             return Calibration(None, None, None)
         elif header['frame'] == FRAME_DARK:
-            return Calibration( self.load_image(self.match_bias(header)),
+            return Calibration(None if not scale else self.load_image(self.match_bias(header)),
                                None,
                                None)
         elif header['frame'] == FRAME_FLAT:
