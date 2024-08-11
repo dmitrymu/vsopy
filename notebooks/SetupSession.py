@@ -185,17 +185,17 @@ class PreviewPhotometry:
         self.r_ap = 5*u.arcsec
         self.r_ann = (10*u.arcsec, 15*u.arcsec)
         self.stars_disabled = set()
-
+        self.settings_ = {}
         if settings_path.exists():
             with open(settings_path) as file:
-                settings = json.load(file)
-                if 'aperture' in settings:
-                    a = settings['aperture']
+                self.settings_ = json.load(file)
+                if 'aperture' in self.settings_:
+                    a = self.settings_['aperture']
                     unit = u.Unit(a['unit'])
                     self.r_ap = a['r_ap'] * unit
                     self.r_ann = a['r_in'] * unit, a['r_out'] * unit
-                if 'disabled' in settings:
-                    self.stars_disabled = set(settings['disabled'])
+                if 'disabled' in self.settings_:
+                    self.stars_disabled = set(self.settings_['disabled'])
 
         self.image_ = image.divide(4)
         self.image_.header = image.header
@@ -229,15 +229,22 @@ class PreviewPhotometry:
 
     @property
     def settings(self):
-        return {
-            "aperture": {
-                "unit": str(u.arcsec),
-                "r_ap": float(self.r_ap.value),
-                "r_in": float(self.r_ann[0].value),
-                "r_out": float(self.r_ann[1].value)
-            },
-            "disabled": [str(s) for s in self.stars_disabled]
-        }
+        result=self.settings_
+        result['aperture']['unit'] = str(u.arcsec)
+        result['aperture']['r_ap'] = float(self.r_ap.value)
+        result['aperture']['r_in'] = float(self.r_ann[0].value)
+        result['aperture']['r_out'] = float(self.r_ann[1].value)
+        result['disabled'] = [str(s) for s in self.stars_disabled]
+        # return {
+        #     "aperture": {
+        #         "unit": str(u.arcsec),
+        #         "r_ap": float(self.r_ap.value),
+        #         "r_in": float(self.r_ann[0].value),
+        #         "r_out": float(self.r_ann[1].value)
+        #     },
+        #     "disabled": [str(s) for s in self.stars_disabled]
+        # }
+        return result
 
     def stars_photometry(self, r, r_in=None, r_out=None, tile=60, ncols=6, width=12.80):
         self.r_ap = r*u.arcsec
@@ -279,5 +286,6 @@ class PreviewPhotometry:
                         r_in=widgets.FloatText(value=self.r_ann[0].value, description='annulus inner "'),
                         r_out=widgets.FloatText(value=self.r_ann[1].value, description='annulus outer "'),
                         tile=widgets.IntSlider(value=40, min=20, max=60, description="Tile size"),
-                        ncols=widgets.IntSlider(value=6, min=1, max=12, description="TNumber of columns")
+                        ncols=widgets.IntSlider(value=6, min=1, max=12, description="TNumber of columns"),
+                        width=width
                         )
