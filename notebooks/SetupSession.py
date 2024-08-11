@@ -104,7 +104,7 @@ class ImagePreview:
             self.blacklist=set()
 
         bands = list([d.parts[-1] for d in band_dirs])
-        self.wgt_play = widgets.Play(value=0, min=0, max=1, interval=1500, description='Play')
+        self.wgt_play = widgets.Play(value=0, min=0, max=1, interval=500, description='Play')
         self.wgt_file = widgets.Dropdown(options=[],
                                     description='Image',
                                     )
@@ -134,7 +134,7 @@ class ImagePreview:
         self.wgt_file.value = self.files_[self.band_].summary['file'][self.wgt_play.value]
 
     def highlight_star(self, ax, pos, title, r ):
-        ax.add_patch(Circle(pos, radius=r, edgecolor='yellow', facecolor='none', alpha = .2))
+        ax.add_patch(Circle(pos, radius=r, edgecolor='orange', facecolor='none', alpha = .5))
         # tx, ty = wcs.pixel_shape[0]+60, wcs.pixel_shape[1] - (n+1) * 60
         # ax.text(tx, ty, f"{n+1}: {star['auid']}")
         # ax.annotate(f"{n+1}", c)
@@ -153,7 +153,8 @@ class ImagePreview:
             vmin, vmax = interval.get_limits(self.image_ .data)
             norm = ImageNormalize(vmin=vmin, vmax=vmax, stretch=AsinhStretch(alpha))
             fig = plt.figure(figsize=(10.24, 10.24))
-            ax = plt.subplot(projection=wcs)
+            #ax = plt.subplot(projection=wcs)
+            ax = plt.subplot()
             ax.imshow(self.image_.data,  origin='lower', norm=norm)
             for star, n in zip(self.chart_, it.count()):
                 r = 20
@@ -161,6 +162,8 @@ class ImagePreview:
                 self.highlight_star(ax, c, f"{n+1}", r)
             ax.set_title(f"{self.image_.header['object']}, {self.band_}, "
                         f"UT {self.image_.header['date-obs'].replace('T', ' ')}")
+            ax.xaxis.set_ticks([])
+            ax.yaxis.set_ticks([])
             plt.show()
         except:
             self.blacklist.add(str(path))
