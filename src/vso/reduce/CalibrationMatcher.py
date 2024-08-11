@@ -51,9 +51,9 @@ class CalibrationMatcher:
                  temp_tolerance=1*u.K,
                  exposure_tolerance=.1):
         self.calibr_dir_ = Path(calibr_dir)
-        self.bias_ = FrameCollection(self.calibr_dir_, FrameType.BIAS)
-        self.dark_ = FrameCollection(self.calibr_dir_, FrameType.DARK)
-        self.flat_ = FrameCollection(self.calibr_dir_, FrameType.FLAT)
+        self.bias_ = FrameCollection(self.calibr_dir_, FrameType.BIAS.value)
+        self.dark_ = FrameCollection(self.calibr_dir_, FrameType.DARK.value)
+        self.flat_ = FrameCollection(self.calibr_dir_, FrameType.FLAT.value)
         self.cache_ = {}
         self.temp_tolerance_ = temp_tolerance
         self.exposure_tolerance_ = exposure_tolerance
@@ -85,6 +85,10 @@ class CalibrationMatcher:
         dt_past = dt[dt > 0]
         return past[np.argmin(dt_past)]
 
+    def closest_time(self, header, collection):
+        dt = np.abs(Time(header['date-obs']).jd - Time(collection['date-obs']).jd)
+        return collection[np.argmin(dt)]
+
     def load_image(self, file):
         path = self.calibr_dir_ / file
         if path not in self.cache_:
@@ -96,11 +100,13 @@ class CalibrationMatcher:
         temp_filtered = self.temp_filter(header, candidates.summary)
         return self.most_recent(header, temp_filtered)['file']
 
-    def match_dark(self, header, scale=False):
+    def match_dark(self, header, scale=False, future=False):
         candidates = self.dark_.filter(header)
         temp_exp_filtered = self.temp_filter(header,
                                              self.exp_filter(header, candidates.summary))
-        return self.most_recent(header, temp_exp_filtered)['file']
+        return (self.closest_time(header, temp_exp_filtered)
+                if future else
+                self.most_recent(header, temp_exp_filtered))['file']
 
     def match_flat(self, header):
         candidates = self.flat_.filter(header).filter(filter=header['filter'])
@@ -109,19 +115,19 @@ class CalibrationMatcher:
 
 
     def match(self, header, scale=False):
-        if header['frame'] == FrameType.BIAS:
+        if header['frame'] == FrameType.BIAS.value:
             return Calibration(None, None, None)
-        elif header['frame'] == FrameType.DARK:
+        elif header['frame'] == FrameType.DARK.value:
             return Calibration(None if not scale else self.load_image(self.match_bias(header)),
                                None,
                                None)
-        elif header['frame'] == FrameType.FLAT:
+        elif header['frame'] == FrameType.FLAT.value:
             return Calibration(None if not scale else self.load_image(self.match_bias(header)),
-                               self.load_image(self.match_dark(header, scale=scale)),
+                               self.load_image(self.match_dark(header, scale=scale, future=True)),
                                None)
         elif header['frame'] == FRAME_LIGHT:
             return Calibration(None if not scale else self.load_image(self.match_bias(header)),
                                self.load_image(self.match_dark(header, scale=scale)),
                                self.load_image(self.match_flat(header)))
         else:
-            raise RuntimeError(f"Unsupported frame type {header['frame']}")
+            raise RuntimeError(f"Unsupported frame type '{header['frame']}'")
