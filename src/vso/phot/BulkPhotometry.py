@@ -5,9 +5,10 @@ import concurrent.futures as cf
 import itertools
 import logging
 from ..reduce import load_and_solve, calibrate_image, CalibrationMatcher
+from ..util import ordered_bands
 from .measure import measure_photometry
 from.BatchAggregator import BatchAggregator
-from astropy.table import QTable, vstack
+from astropy.table import QTable, vstack, unique
 import psutil
 import json
 from collections import namedtuple
@@ -27,15 +28,6 @@ def read_json(path):
 
 def read_table_if_exists(path):
     return QTable.read(path) if path.exists() else None
-
-def load_settings(path):
-    settings = read_json(path)
-    ap = settings['aperture']
-    ap_unit = u.Unit(ap['unit'])
-    return Aperture(
-        r=ap['r_ap'] * ap_unit,
-        r_in=ap['r_in'] * ap_unit,
-        r_out=ap['r_out'] * ap_unit)
 
 def append_table(table1, table2):
     return table2 if not table1 else vstack([table1, table2])
@@ -81,7 +73,7 @@ class BulkPhotometry:
         self.calibr_dir_ = calibr_dir
         logging.getLogger('astropy').setLevel(logging.ERROR)
         logging.getLogger('root').setLevel(logging.ERROR)
-        self.aperture_ = load_settings(self.session_dir_ / 'settings.json')
+        self.aperture_ = self.load_aperture()
         self.stars_ = QTable.read(self.session_dir_ / 'centroids.ecsv')
         self.star_table_ = read_table_if_exists(self.star_table_path)
         self.image_table_ = read_table_if_exists(self.image_table_path)
@@ -104,6 +96,22 @@ class BulkPhotometry:
     def worker_init(me):
         BulkPhotometry.matcher = CalibrationMatcher(me.calibr_dir_,
                                                     temp_tolerance=2*u.K)
+
+    def load_aperture(self):
+        settings = read_json(self.session_dir_ / 'settings.json')
+        ap = settings['aperture']
+        ap_unit = u.Unit(ap['unit'])
+        return Aperture(
+            r=ap['r_ap'] * ap_unit,
+            r_in=ap['r_in'] * ap_unit,
+            r_out=ap['r_out'] * ap_unit)
+
+    def update_bands(self, bands):
+        path = self.session_dir_ / 'settings.json'
+        settings = read_json(path)
+        settings['bands'] = bands
+        with open(path, mode='w') as f:
+            json.dump(settings, f, indent=2)
 
     def was_not_processed(self, id, file_path):
         return str(file_path) not in self.blacklist_ and id not in self.processed_
@@ -214,6 +222,8 @@ class BulkPhotometry:
             self.image_table_ = append_table(self.image_table_, QTable(info_list))
             self.star_table_.write(self.star_table_path, format='ascii.ecsv', overwrite=True)
             self.image_table_.write(self.image_table_path, format='ascii.ecsv', overwrite=True)
+
+        self.update_bands(ordered_bands(self.star_table_['band']) if len(self.star_table_) > 0 else [])
 
         aggr = BatchAggregator()
         result = aggr.aggregate(self.image_table_, self.star_table_)
