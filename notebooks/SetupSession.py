@@ -98,7 +98,8 @@ class ImagePreview:
         self.blacklist_path = blacklist_path
         if self.blacklist_path.exists():
             with open(self.blacklist_path) as file:
-                self.blacklist = set(json.load(file)['blacklist'])
+                blacklist = json.load(file)
+                self.blacklist = set(blacklist['blacklist']) if 'blacklist' in blacklist else []
         else:
             self.blacklist=set()
 
@@ -269,8 +270,11 @@ class PreviewPhotometry:
                     vp.circle(ax, c, r_2,
                               linewidth=2, edgecolor='orange', facecolor='none', alpha=.2)
 
-    def run(self):
-        widgets.interact_manual(self.stars_photometry,
+    def run(self, width=12.80):
+        widgets.interact(self.stars_photometry,
                         r=widgets.FloatText(value=self.r_ap.value, description='aperture "'),
                         r_in=widgets.FloatText(value=self.r_ann[0].value, description='annulus inner "'),
-                        r_out=widgets.FloatText(value=self.r_ann[1].value, description='annulus outer "'))
+                        r_out=widgets.FloatText(value=self.r_ann[1].value, description='annulus outer "'),
+                        tile=widgets.IntSlider(value=40, min=20, max=60, description="Tile size"),
+                        ncols=widgets.IntSlider(value=6, min=1, max=12, description="TNumber of columns")
+                        )
