@@ -31,7 +31,7 @@ def main():
     session_dir = Path(args.work_dir) /  Path('session') / object_dir
     if not session_dir.exists():
         session_dir.mkdir(parents=True)
-    charts_dir = Path(args.work_dir) / 'charts_'
+    charts_dir = Path(args.work_dir) / 'charts'
 
     data = vso.data.StarData(charts_dir)
     name =  args.object.replace('_', ' ')

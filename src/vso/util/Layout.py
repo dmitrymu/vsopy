@@ -35,7 +35,7 @@ class LayoutBase:
 class Session:
     def __init__(self, tag=None, name=None):
         self.tag_ = tag
-        self.name_ = name
+        self.name_ = name.replace(' ', '_')
 
     @property
     def rel_path(self):
