@@ -13,6 +13,7 @@ def calibrate_image(image, bias=None, dark=None, flat=None):
     adu_scale = 1 if camera is None else camera.adu_scale
 
     source = CCDData.divide(image, adu_scale)
+    source.meta = image.meta
 
     image_gain = image.header['gain']
     e_gain = camera.gain_to_e(image_gain) if camera else None

@@ -50,6 +50,8 @@ class BatchAggregator:
             per_band[band] = images[f'id', f'time', f'finish', f'airmass']
             per_band[band]['time'] = per_band[band]['time'].jd
             exposure[band] = np.max(images['exposure'].value)
+            to_rename = [f'id', f'finish', f'airmass']
+            per_band[band].rename_columns(to_rename, [f"{c}_{band}" for c in to_rename])
 
         batches = None
         prev_band = None
