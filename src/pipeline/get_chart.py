@@ -15,10 +15,11 @@ import numpy as np
 
 
 def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-O', '--object', type=str, required=True, help='Object to be worked')
+    parser = argparse.ArgumentParser(
+        description='download photometric sequence to the session directory')
+    parser.add_argument('-O', '--object', type=str, required=True, help='Object name')
     parser.add_argument('-t', '--tag', type=str, required=True, help='Tag (date)')
-    parser.add_argument('-c', '--common_dir', type=str, required=True, help='File tree root')
+    parser.add_argument('-w', '--work-dir', type=str, required=True, help='Work directory')
 
     return parser.parse_args()
 
@@ -27,10 +28,10 @@ def main():
 
     object_dir = Path(args.tag) / args.object
 
-    session_dir = Path(args.common_dir) /  Path('session') / object_dir
+    session_dir = Path(args.work_dir) /  Path('session') / object_dir
     if not session_dir.exists():
         session_dir.mkdir(parents=True)
-    charts_dir = Path(args.common_dir) / 'charts_'
+    charts_dir = Path(args.work_dir) / 'charts_'
 
     data = vso.data.StarData(charts_dir)
     name =  args.object.replace('_', ' ')
@@ -38,7 +39,7 @@ def main():
 
     return 0
 
-# Example: python3 get_chart.py -O RR_Lyr -t 20230704 -c /srv/public
+# Example: python3 get_chart.py -O RR_Lyr -t 20230704 -w /home/user/work
 
 if __name__ == '__main__':
     sys.exit(main())

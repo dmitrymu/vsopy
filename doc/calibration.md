@@ -6,16 +6,16 @@ There is [`src/pipeline/create_master.py`](../src/pipeline/create_master.py)
 command-line script for this purpose.  Use as follows:
 
 ```{}
-python3 create_master.py [-h] -c COMMON_DIR [-i IMAGE_DIR] -T {Bias,Dark,Flat} [-m MEMORY_LIMIT] [--no-cleanup] [--overwrite]
+python3 create_master.py [-h] -w WORK_DIR [-i IMAGE_DIR] [-m MEMORY_LIMIT] [--no-cleanup] [--overwrite]
+
+Traverse image directory and create master frames from all discovered calibration images
 
 options:
   -h, --help            show this help message and exit
-  -c COMMON_DIR, --common_dir COMMON_DIR
-                        File tree root
-  -i IMAGE_DIR, --image_dir IMAGE_DIR
+  -w WORK_DIR, --work-dir WORK_DIR
+                        Work directory
+  -i IMAGE_DIR, --image-dir IMAGE_DIR
                         Image directory
-  -T {Bias,Dark,Flat}, --type {Bias,Dark,Flat}
-                        Calibration frame type
   -m MEMORY_LIMIT, --memory-limit MEMORY_LIMIT
                         memory limit in MB
   --no-cleanup          Do not remove temporary files

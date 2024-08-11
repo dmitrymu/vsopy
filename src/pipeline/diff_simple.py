@@ -13,13 +13,14 @@ from astropy.table import QTable
 
 
 def parse_args():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description='Generate differential photometry report for the session')
     parser.add_argument('-O', '--object', type=str,
-                        required=True, help='Object to be worked')
+                        required=True, help='Object name')
     parser.add_argument('-t', '--tag', type=str,
                         required=True, help='Tag (date)')
-    parser.add_argument('-c', '--common_dir', type=str,
-                        required=True, help='File tree root')
+    parser.add_argument('-w', '--work-dir', type=str,
+                        required=True, help='Work directory')
     parser.add_argument('--observer', type=str,
                         required=True, help='AAVSO observer code')
 
@@ -31,7 +32,7 @@ def main():
 
     object_dir = Path(args.tag) / args.object  # '20240725/SA38'
 
-    session_dir = args.common_dir / Path('session') / object_dir
+    session_dir = args.work_dir / Path('session') / object_dir
 
     with open(session_dir / 'settings.json') as file:
        settings = json.load(file)
@@ -47,18 +48,15 @@ def main():
     xfm = phot.BatchTransformer(('B', 'V'), settings["diff_photometry"])
     bv = xfm.calculate(provider)
     V_BV_err = total_err(bv, 'V')
-#    bv.write(session_dir / 'diff_simple_bv.ecsv', overwrite=True)
 
     xfm = phot.BatchTransformer(('V', 'Rc'), settings["diff_photometry"])
     vr = xfm.calculate(provider)
     V_VR_err = total_err(vr, 'V')
     R_VR_err = total_err(vr, 'Rc')
-#     result.write(session_dir / 'verify_simple_vr.ecsv', overwrite=True)
 
     xfm = phot.BatchTransformer(('Rc', 'Ic'), settings["diff_photometry"])
     ri = xfm.calculate(provider)
     R_RI_err = total_err(ri, 'Rc')
-#     result.write(session_dir / 'verify_simple_ri.ecsv', overwrite=True)
 
     with open(session_dir/'report-simple.txt', mode='w') as f:
        report = data.AavsoReport(f,
@@ -73,7 +71,7 @@ def main():
 
     return 0
 
-# Example: python3 diff_simple.py -O RR_Lyr -t 20230704 -c /srv/public --observer XYZ
+# Example: python3 diff_simple.py -O RR_Lyr -t 20230704 -w /home/user/work --observer XYZ
 
 
 if __name__ == '__main__':
