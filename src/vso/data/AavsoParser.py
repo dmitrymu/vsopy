@@ -137,5 +137,10 @@ class AavsoParser:
             meta['auid'] = chart['auid']
         if 'star' in chart:
             meta['star'] = chart['star']
+        if 'ra' in chart and 'dec' in chart:
+            meta['radec2000'] = SkyCoord(
+                ra=Angle(chart['ra'], unit=u.hourangle),
+                dec=Angle(chart['dec'], unit=u.deg)
+            )
 
         return QTable(result, meta=meta)

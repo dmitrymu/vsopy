@@ -82,6 +82,10 @@ class SessionLayout(LayoutBase):
     def settings_file_path(self):
         return self.root_dir / 'settings.json'
 
+    @property
+    def photometry_file_path(self):
+        return self.root_dir / 'photometry.ecsv'
+
 
 
 class WorkLayout(LayoutBase):
