@@ -242,7 +242,7 @@ class PreviewPhotometry:
     @property
     def settings(self):
         result=self.settings_
-        result['aperture']['unit'] = str(u.arcsec)
+        result.setdefault('aperture',{})['unit'] = str(u.arcsec)
         result['aperture']['r_ap'] = float(self.r_ap.value)
         result['aperture']['r_in'] = float(self.r_ann[0].value)
         result['aperture']['r_out'] = float(self.r_ann[1].value)
