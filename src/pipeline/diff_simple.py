@@ -42,19 +42,38 @@ def main():
         QTable.read(session_dir / 'chart.ecsv')
     )
 
+
+    def get_comp(band, settings):
+        band_settings = settings["diff_photometry"][f"{band[0]}{band[1]}"]
+        return band_settings['comp']
+
+    def get_check(band, settings):
+        band_settings = settings["diff_photometry"][f"{band[0]}{band[1]}"]
+        return  band_settings['check'] if 'check' in band_settings else None
+
+
     def total_err(table, band):
         return np.sqrt(np.sum(table[band]['err']**2)/len(table))
 
-    xfm = phot.BatchTransformer(('B', 'V'), settings["diff_photometry"])
+    band = ('B', 'V')
+    xfm = phot.BatchTransformer(band,
+                                get_comp(band, settings),
+                                get_check(band, settings))
     bv = xfm.calculate(provider)
     V_BV_err = total_err(bv, 'V')
 
-    xfm = phot.BatchTransformer(('V', 'Rc'), settings["diff_photometry"])
+    band = ('V', 'Rc')
+    xfm = phot.BatchTransformer(band,
+                                get_comp(band, settings),
+                                get_check(band, settings))
     vr = xfm.calculate(provider)
     V_VR_err = total_err(vr, 'V')
     R_VR_err = total_err(vr, 'Rc')
 
-    xfm = phot.BatchTransformer(('Rc', 'Ic'), settings["diff_photometry"])
+    band = ('Rc', 'Ic')
+    xfm = phot.BatchTransformer(band,
+                                get_comp(band, settings),
+                                get_check(band, settings))
     ri = xfm.calculate(provider)
     R_RI_err = total_err(ri, 'Rc')
 

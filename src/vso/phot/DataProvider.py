@@ -1,6 +1,7 @@
 import astropy.units as u
 import numpy as np
 from astropy.table import join
+from ..util import ordered_bands
 
 def no_nan_mag(batch, band_a, band_b):
     filter_nan = np.all([~np.isnan(batch[band_a]['mag']),
@@ -15,9 +16,8 @@ class DataProvider:
 
     def __init__(self, photometry, chart,
                  saturation_threshold=.9,
-                 snr_threshold=10.0 * u.db,
-                 bands=['B', 'V', 'Rc', 'Ic']):
-        self.bands_ = bands
+                 snr_threshold=10.0 * u.db):
+        self.bands_ = ordered_bands(None)
         self.photometry_ = photometry
         self.chart_ = chart
         self.data = join(self.photometry_, chart[self.bands_ + ['auid']], keys='auid')
