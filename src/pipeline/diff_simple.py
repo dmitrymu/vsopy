@@ -7,10 +7,11 @@ sys.path.insert(0, os.path.abspath(os.path.join(
 import numpy as np
 import argparse
 import json
-from vso import phot, data
+from vso import phot, data, util
 from pathlib import Path
 from astropy.table import QTable
-
+from collections import namedtuple
+from operator import attrgetter
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -30,63 +31,51 @@ def parse_args():
 def main():
     args = parse_args()
 
-    object_dir = Path(args.tag) / args.object  # '20240725/SA38'
-
-    session_dir = args.work_dir / Path('session') / object_dir
-
-    with open(session_dir / 'settings.json') as file:
-       settings = json.load(file)
+    session = util.Session(tag=args.tag, name=args.object)
+    layout = util.WorkLayout(args.work_dir)
+    session_layout = layout.get_session(session)
+    settings = util.Settings(session_layout.settings_file_path)
 
     provider = phot.DataProvider(
-        QTable.read(session_dir / 'photometry.ecsv'),
-        QTable.read(session_dir / 'chart.ecsv')
+        QTable.read(session_layout.photometry_file_path),
+        QTable.read(session_layout.chart_file_path)
     )
 
-
-    def get_comp(band, settings):
-        band_settings = settings["diff_photometry"][f"{band[0]}{band[1]}"]
-        return band_settings['comp']
-
-    def get_check(band, settings):
-        band_settings = settings["diff_photometry"][f"{band[0]}{band[1]}"]
-        return  band_settings['check'] if 'check' in band_settings else None
-
+    def reject_outliers(data, band, sigma=2.0):
+        dc = data[f'check {band}']['mag'] - data[f'check std {band}']['mag']
+        dc_mean = np.mean(dc)
+        dc_std = np.std(dc)
+        flt = np.abs(dc - dc_mean) < sigma*dc_std
+        return data[flt]
 
     def total_err(table, band):
         return np.sqrt(np.sum(table[band]['err']**2)/len(table))
 
-    band = ('B', 'V')
-    xfm = phot.BatchTransformer(band,
-                                get_comp(band, settings),
-                                get_check(band, settings))
-    bv = xfm.calculate(provider)
-    V_BV_err = total_err(bv, 'V')
+    BandResult = namedtuple('BandResult', ['err', 'data'])
 
-    band = ('V', 'Rc')
-    xfm = phot.BatchTransformer(band,
-                                get_comp(band, settings),
-                                get_check(band, settings))
-    vr = xfm.calculate(provider)
-    V_VR_err = total_err(vr, 'V')
-    R_VR_err = total_err(vr, 'Rc')
+    bands = util.band_pairs(settings.bands)
+    result = {}
+    for band in bands:
+        xfm = phot.BatchTransformer(
+            band,
+            settings.get_comp(band),
+            settings.get_check(band))
 
-    band = ('Rc', 'Ic')
-    xfm = phot.BatchTransformer(band,
-                                get_comp(band, settings),
-                                get_check(band, settings))
-    ri = xfm.calculate(provider)
-    R_RI_err = total_err(ri, 'Rc')
+        ab = xfm.calculate(provider)
+        a_err = total_err(ab, band[0])
+        b_err = total_err(ab, band[1])
+        result.setdefault(band[0], []).append(BandResult(err=a_err, data=ab))
+        result.setdefault(band[1], []).append(BandResult(err=b_err, data=ab))
 
-    with open(session_dir/'report-simple.txt', mode='w') as f:
-       report = data.AavsoReport(f,
-                                 provider.target_name,
-                                 provider.chart_id,
-                                 args.observer)
-       report.header()
-       report.body(bv, 'B')
-       report.body(bv if V_BV_err < V_VR_err else vr, 'V')
-       report.body(vr if R_VR_err < R_RI_err else ri, 'Rc')
-       report.body(ri, 'Ic')
+    with open(session_layout.root_dir / 'report-simple.txt', mode='w') as f:
+      report = data.AavsoReport(f,
+                                provider.target_name,
+                                provider.chart_id,
+                                args.observer)
+      report.header()
+      for band in settings.bands:
+        dt = min(result[band], key=attrgetter('err')).data
+        report.body(reject_outliers(dt, band), band)
 
     return 0
 
