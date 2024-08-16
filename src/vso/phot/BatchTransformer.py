@@ -3,11 +3,10 @@ from astropy.table import QTable, Column, hstack
 from .SimpleTransform import SimpleTransform
 
 class BatchTransformer:
-    def __init__(self, band, settings) -> None:
+    def __init__(self, band, comp_auid, check_auid=None) -> None:
         self.band_ = band
-        band_settings = settings[f"{self.band_[0]}{self.band_[1]}"]
-        self.comp_ = band_settings['comp']
-        self.check_ = band_settings['check'] if 'check' in band_settings else None
+        self.comp_ = comp_auid
+        self.check_ = check_auid
 
     def combine(self, provider):
         target = provider.get_target()
@@ -19,6 +18,7 @@ class BatchTransformer:
                    else batch[batch['auid'] == self.check_][0],
                    SimpleTransform.create(batch, self.band_[0], self.band_[1]))
                   for batch in batches
+                  if self.comp_ in batch['auid'] and (self.check_ is None or self.check_ in batch['auid'])
                   ]
         return result
 
@@ -68,10 +68,10 @@ class BatchTransformer:
                    dtype=[('mag', 'f4'), ('err', 'f4')]),
             Column([x[7] for x in transformed],
                    name='Ta',
-                   dtype=[('mag', 'f4'), ('err', 'f4')]),
+                   dtype=[('val', 'f4'), ('err', 'f4')]),
             Column([x[8] for x in transformed],
                    name='Tab',
-                   dtype=[('mag', 'f4'), ('err', 'f4')]),
+                   dtype=[('val', 'f4'), ('err', 'f4')]),
         ])
 
         if self.check_ is not None:

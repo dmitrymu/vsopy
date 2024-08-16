@@ -43,12 +43,15 @@ def cutout(fig, image, position, size,
                        size,
                        wcs=image.wcs if wcs is None else wcs)
 
-    ax = plt.subplot(projection=cutout.wcs) if subplot is None else fig.add_subplot(subplot, projection=cutout.wcs)
+    # ax = plt.subplot(projection=cutout.wcs) if subplot is None else fig.add_subplot(subplot, projection=cutout.wcs)
+    ax = plt.subplot() if subplot is None else fig.add_subplot(subplot)
     ax.imshow(cutout.data, origin='lower', norm=norm(cutout.data))
-    ax.coords[0].set_axislabel(position.ra.to_string(u.hour))
-    ax.coords[1].set_axislabel("")
-    ax.coords[0].set_ticks([] * u.degree)
-    ax.coords[1].set_ticks([] * u.degree)
+    # ax.coords[0].set_axislabel(position.ra.to_string(u.hour))
+    # ax.coords[1].set_axislabel("")
+    # ax.coords[0].set_ticks([] * u.degree)
+    # ax.coords[1].set_ticks([] * u.degree)
+    ax.xaxis.set_ticks([])
+    ax.yaxis.set_ticks([])
     return (ax, cutout)
 
 def cross(ax, center, size, **kwargs):

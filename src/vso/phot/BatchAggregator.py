@@ -2,6 +2,7 @@ import numpy as np
 import numpy.lib.recfunctions as rf
 from astropy.table import join, unique, join_distance
 from astropy.time import Time, TimeDelta
+from ..util import ordered_bands
 
 def column_mask(column):
     return column.mask if hasattr(column, 'mask') else np.full((len(column)), False)
@@ -15,20 +16,10 @@ class BatchAggregator:
     for differential photometry. The order of filter change must be consistent
     inside a whole session.
     """
-    def __init__(self, filter_order=['B', 'V', 'Rc', 'Ic']) -> None:
+    def __init__(self) -> None:
         """Create the processor
 
-        Args:
-            filter_order (list, optional): the order of filter change.
-                                           Defaults to ['B', 'V', 'Rc', 'Ic'].
         """
-        self.filter_order_=filter_order
-
-    def active_bands(self, image_table):
-        if not image_table:
-            return self.filter_order_
-        else:
-            return [x for x in self.filter_order_ if x in set(image_table['band'])]
 
     def batch(self, bands, image_table):
         """Combine single-band images into multi-band batches.
@@ -50,6 +41,8 @@ class BatchAggregator:
             per_band[band] = images[f'id', f'time', f'finish', f'airmass']
             per_band[band]['time'] = per_band[band]['time'].jd
             exposure[band] = np.max(images['exposure'].value)
+            to_rename = [f'id', f'finish', f'airmass']
+            per_band[band].rename_columns(to_rename, [f"{c}_{band}" for c in to_rename])
 
         batches = None
         prev_band = None
@@ -97,7 +90,7 @@ class BatchAggregator:
             QTable: batched photometry
                     (auid, band, mag B, SNR B, peak B, mag V, SNR V, ...)
         """
-        bands = self.active_bands(image_table)
+        bands = ordered_bands(image_table['band'])
         batches = self.batch(bands, image_table)
 
 

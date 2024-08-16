@@ -2,8 +2,10 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../src')))
 
+import astropy.units as u
 import unittest
 from vso.data import AavsoParser
+from astropy.coordinates import SkyCoord, Angle
 
 class AavsoParserTest(unittest.TestCase):
 
@@ -122,4 +124,8 @@ class AavsoParserTest(unittest.TestCase):
         self.assertDictEqual(chart.meta,
                              dict(chart_id='X37313LN',
                                   auid='000-BCH-041',
-                                  star='XZ Cyg'))
+                                  star='XZ Cyg',
+                                  radec2000=SkyCoord(
+                                      ra=Angle("19:32:29.31", unit=u.hourangle),
+                                      dec=Angle("56:23:17.5", unit=u.deg)
+                                  )))

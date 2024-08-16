@@ -35,7 +35,7 @@ class LayoutBase:
 class Session:
     def __init__(self, tag=None, name=None):
         self.tag_ = tag
-        self.name_ = name
+        self.name_ = name.replace(' ', '_')
 
     @property
     def rel_path(self):
@@ -81,6 +81,10 @@ class SessionLayout(LayoutBase):
     @property
     def settings_file_path(self):
         return self.root_dir / 'settings.json'
+
+    @property
+    def photometry_file_path(self):
+        return self.root_dir / 'photometry.ecsv'
 
 
 
