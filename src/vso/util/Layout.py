@@ -41,6 +41,10 @@ class Session:
     def rel_path(self):
         return Path(self.tag_) / Path(self.name_)
 
+    @property
+    def name(self):
+        return self.name_.replace('_', '')
+
 class TargetLayout(LayoutBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

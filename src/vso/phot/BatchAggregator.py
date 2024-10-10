@@ -1,6 +1,6 @@
 import numpy as np
 import numpy.lib.recfunctions as rf
-from astropy.table import join, unique, join_distance, QTable
+from astropy.table import join, unique, join_distance, QTable, Column
 from astropy.time import Time, TimeDelta
 from ..util import ordered_bands
 
@@ -116,5 +116,5 @@ class BatchAggregator:
 
         result.remove_columns([f"id_{band}" for band in bands])
         result.rename_columns([c for c in result.colnames if '_' in c], [c.replace('_', ' ') for c in result.colnames if '_' in c])
-        return result
+        return QTable([result[name] for name in result.colnames])
 
