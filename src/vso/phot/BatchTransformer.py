@@ -18,7 +18,9 @@ class BatchTransformer:
                    else batch[batch['auid'] == self.check_][0],
                    SimpleTransform.create(batch, self.band_[0], self.band_[1]))
                   for batch in batches
-                  if self.comp_ in batch['auid'] and (self.check_ is None or self.check_ in batch['auid'])
+                  if self.comp_ in batch['auid'] \
+                     and (self.check_ is None or self.check_ in batch['auid']) \
+                     and len(batch) > 2
                   ]
         return result
 
@@ -38,7 +40,9 @@ class BatchTransformer:
                         None if not check else check['auid'],
                         None if not check else check[self.band_[0]],
                         None if not check else check[self.band_[1]],
-                        None if not check else xfm(check, comp)
+                        None if not check else xfm(check, comp),
+                        target[f'peak {self.band_[0]}'],
+                        target[f'peak {self.band_[1]}']
                         )
                        for id, target, comp, check, xfm in data]
 
@@ -72,6 +76,10 @@ class BatchTransformer:
             Column([x[8] for x in transformed],
                    name='Tab',
                    dtype=[('val', 'f4'), ('err', 'f4')]),
+            Column([x[13] for x in transformed],
+                   name=f'peak {self.band_[0]}'),
+            Column([x[14] for x in transformed],
+                   name=f'peak {self.band_[1]}'),
         ])
 
         if self.check_ is not None:

@@ -77,7 +77,9 @@ def measure_photometry(image, stars, r_ap, r_ann):
     FtFb = Ft - Fb
     Ft2Fb = Ft + 2 * Fb
     result['flux'] = FtFb
-    result['snr'] = 10 * np.log10(FtFb.value/np.sqrt(Ft2Fb.value)) * u.db
+    # prevent NaN in snr column
+    snr = np.clip(FtFb.value/np.sqrt(np.abs(Ft2Fb.value)), 1e-10, 1e30)
+    result['snr'] = 10 * np.log10(snr) * u.db
     mag = -2.5 * np.log10(result['flux'] / zero_level).value
 
     Ft_err = ap_stats.sum_err
