@@ -6,6 +6,7 @@ psutil
 astropy[recommended]
 ccdproc
 photutils
+astroquery
 
 # Jupyter notebooks and extensions
 ipykernel
