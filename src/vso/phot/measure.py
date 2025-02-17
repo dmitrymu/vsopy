@@ -72,11 +72,11 @@ def measure_photometry(image, stars, r_ap, r_ann):
 
     zero_level = 1_000_000 * image.unit / u.second
     exp = image.header['EXPTIME'] * u.second
-    Ft = ap_stats.sum / exp
-    Fb = ap_stats.sum_aper_area.value * ann_stats.mean / exp
+    Ft = ap_stats.sum
+    Fb = ap_stats.sum_aper_area.value * ann_stats.mean
     FtFb = Ft - Fb
     Ft2Fb = Ft + 2 * Fb
-    result['flux'] = FtFb
+    result['flux'] = FtFb / exp
     # prevent NaN in snr column
     snr = np.clip(FtFb.value/np.sqrt(np.abs(Ft2Fb.value)), 1e-10, 1e30)
     result['snr'] = 10 * np.log10(snr) * u.db
