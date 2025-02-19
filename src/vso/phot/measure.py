@@ -72,10 +72,12 @@ def measure_photometry(image, stars, r_ap, r_ann):
 
     zero_level = 1_000_000 * image.unit / u.second
     exp = image.header['EXPTIME'] * u.second
+    camera = CameraRegistry.get(image.header['instrume'])
+    read_noise = 0 if not camera or image.unit != u.electron else camera.read_noise(image.header['GAIN'])
     Ft = ap_stats.sum
     Fb = ap_stats.sum_aper_area.value * ann_stats.mean
     FtFb = Ft - Fb
-    Ft2Fb = Ft + 2 * Fb
+    Ft2Fb = Ft + 2 * Fb + read_noise * ap_stats.sum_aper_area.value
     result['flux'] = FtFb / exp
     # prevent NaN in snr column
     snr = np.clip(FtFb.value/np.sqrt(np.abs(Ft2Fb.value)), 1e-10, 1e30)
@@ -90,7 +92,6 @@ def measure_photometry(image, stars, r_ap, r_ann):
                          unit=u.mag,
                          dtype=[('mag','f4'), ('err', 'f4')])
 
-    camera = CameraRegistry.get(image.header['instrume'])
     result['peak'] = np.nan if not camera else ap_stats.max.value / camera.max_adu.value
 
     return result
