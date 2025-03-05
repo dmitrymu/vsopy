@@ -2,10 +2,14 @@ pytest
 pytest-cov
 psutil
 
+# speed up NumPy
+bottleneck
+
 # Astropy and associates
 astropy[recommended]
 ccdproc
 photutils
+astroquery
 
 # Jupyter notebooks and extensions
 ipykernel

@@ -16,7 +16,7 @@ def parse_args():
     parser.add_argument('-O', '--object', type=str, required=True, help='Object name')
     parser.add_argument('-t', '--tag', type=str, required=True, help='Tag (date)')
     parser.add_argument('-w', '--work-dir', type=str, required=True, help='Work directory')
-    parser.add_argument('-i', '--image-dir', type=str, default=None, help='Image directory')
+    parser.add_argument('-i', '--image-dir', type=str, required=True, default=None, help='Image directory')
 
     return parser.parse_args()
 

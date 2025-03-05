@@ -1,6 +1,6 @@
 import numpy as np
 import numpy.lib.recfunctions as rf
-from astropy.table import join, unique, join_distance
+from astropy.table import join, unique, join_distance, QTable, Column
 from astropy.time import Time, TimeDelta
 from ..util import ordered_bands
 
@@ -38,6 +38,8 @@ class BatchAggregator:
         exposure = {}
         for band in bands:
             images = image_table.loc[band]
+            if not isinstance(images, QTable):
+                continue
             per_band[band] = images[f'id', f'time', f'finish', f'airmass']
             per_band[band]['time'] = per_band[band]['time'].jd
             exposure[band] = np.max(images['exposure'].value)
@@ -46,6 +48,7 @@ class BatchAggregator:
 
         batches = None
         prev_band = None
+        bands = ordered_bands(list(per_band.keys()))
 
         for band in bands:
             batches = per_band[band] if not batches else join(
@@ -74,7 +77,7 @@ class BatchAggregator:
         batches.remove_columns([f"time_{b}" for b in bands])
         batches.remove_columns([f"finish_{b}" for b in bands])
         batches['id'] = range(1, len(batches) + 1)
-        return batches
+        return batches, bands
 
     def aggregate(self, image_table, star_table):
         """Create batches and join per-star photometry
@@ -91,7 +94,7 @@ class BatchAggregator:
                     (auid, band, mag B, SNR B, peak B, mag V, SNR V, ...)
         """
         bands = ordered_bands(image_table['band'])
-        batches = self.batch(bands, image_table)
+        batches, bands = self.batch(bands, image_table)
 
 
         stargroup =  join(batches['id','time', 'duration', 'airmass'],
@@ -113,5 +116,5 @@ class BatchAggregator:
 
         result.remove_columns([f"id_{band}" for band in bands])
         result.rename_columns([c for c in result.colnames if '_' in c], [c.replace('_', ' ') for c in result.colnames if '_' in c])
-        return result
+        return QTable([result[name] for name in result.colnames])
 

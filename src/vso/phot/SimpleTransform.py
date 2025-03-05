@@ -116,6 +116,9 @@ class SimpleTransform:
         reg_ab = sst.linregress(AB, ab)
         reg_Aa = sst.linregress(AB, Aa)
 
+        if reg_Aa.stderr == 0 or reg_ab.stderr == 0:
+            raise Exception("Zero stderr%")
+
         result = SimpleTransform(band_a, band_b,
                                  (reg_Aa.slope, reg_Aa.stderr),
                                  (1/reg_ab.slope, reg_ab.stderr))

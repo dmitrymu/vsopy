@@ -7,8 +7,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(
 import sys
 import argparse
 import vso.data
-from pathlib import Path
-from astropy.table import QTable
+import vso.util
+from astropy.table import unique, vstack
 
 import astropy.units as u
 import numpy as np
@@ -17,25 +17,41 @@ import numpy as np
 def parse_args():
     parser = argparse.ArgumentParser(
         description='download photometric sequence to the session directory')
-    parser.add_argument('-O', '--object', type=str, required=True, help='Object name')
-    parser.add_argument('-t', '--tag', type=str, required=True, help='Tag (date)')
-    parser.add_argument('-w', '--work-dir', type=str, required=True, help='Work directory')
+    parser.add_argument('-O', '--object', type=str,
+                        required=True, help='Object name')
+    parser.add_argument('-t', '--tag', type=str,
+                        required=True, help='Tag (date)')
+    parser.add_argument('-w', '--work-dir', type=str,
+                        required=True, help='Work directory')
+    parser.add_argument('--overwrite', action='store_true',
+                        default=False, help='Overwrite output files')
 
     return parser.parse_args()
 
 def main():
     args = parse_args()
 
-    object_dir = Path(args.tag) / args.object
+    session = vso.util.Session(tag=args.tag, name=args.object)
+    layout = vso.util.WorkLayout(args.work_dir)
+    session_layout = layout.get_session(session)
 
-    session_dir = Path(args.work_dir) /  Path('session') / object_dir
-    if not session_dir.exists():
-        session_dir.mkdir(parents=True)
-    charts_dir = Path(args.work_dir) / 'charts'
-
-    data = vso.data.StarData(charts_dir)
+    data = vso.data.StarData(layout.charts_dir)
     name =  args.object.replace('_', ' ')
-    data.get_chart(name, 60*u.arcmin, maglimit=16*u.mag).write(session_dir / 'chart.ecsv', format='ascii.ecsv')
+    if data.is_std_field(name):
+        objects = [n for n in data.std_fields['name']
+                   if n == name or n.startswith(f"{name} ")]
+
+        stars = unique(vstack([data.get_chart(name)
+                               for name in objects]))
+        stars.write(session_layout.chart_file_path,
+                    format='ascii.ecsv',
+                    overwrite=args.overwrite)
+    else:
+        data.get_chart(name,
+                       60*u.arcmin,
+                       maglimit=16 * u.mag).write(session_layout.chart_file_path,
+                                                  format='ascii.ecsv',
+                                                  overwrite=args.overwrite)
 
     return 0
 
