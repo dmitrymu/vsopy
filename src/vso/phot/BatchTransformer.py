@@ -16,7 +16,8 @@ class BatchTransformer:
                    batch[batch['auid'] == self.comp_][0],
                    None if not self.check_
                    else batch[batch['auid'] == self.check_][0],
-                   SimpleTransform.create(batch, self.band_[0], self.band_[1]))
+                   SimpleTransform.create(batch, self.band_[0], self.band_[1]),
+                   batch['airmass'][0])
                   for batch in batches
                   if self.comp_ in batch['auid'] \
                      and (self.check_ is None or self.check_ in batch['auid']) \
@@ -27,7 +28,9 @@ class BatchTransformer:
 
     def calculate(self, provider):
         data = self.combine(provider)
+        return self.calc(data)
 
+    def calc(self, data):
         transformed = [(id,
                         target['time'],
                         target['airmass'],
@@ -44,7 +47,7 @@ class BatchTransformer:
                         target[f'peak {self.band_[0]}'],
                         target[f'peak {self.band_[1]}']
                         )
-                       for id, target, comp, check, xfm in data]
+                       for id, target, comp, check, xfm, _ in data]
 
         def mag_err(x):
             return (x[0].value, x[1].value)

@@ -188,7 +188,8 @@ class PreviewDiffPhotometry:
         self.settings_.set_comp(band, comp)
         self.settings_.set_check(band, check)
         xfm = vso.phot.BatchTransformer(band, comp, check)
-        dph = xfm.calculate(self.provider_)
+        td =  xfm.combine(self.provider_)
+        dph = xfm.calc(td)
 
         def plot_band(ax, data, band):
             ax.errorbar(data['time'], data[f'{band}']['mag'],
@@ -206,8 +207,8 @@ class PreviewDiffPhotometry:
 
         star = self.chart_.meta.get('star', '???')
 
-        fig = plt.figure(figsize=(10.24, 24.0))
-        gs = fig.add_gridspec(4, 1)
+        fig = plt.figure(figsize=(10.24, 30.0))
+        gs = fig.add_gridspec(6, 1)
         #ax = plt.subplot()
         #flt = dph[f'check {band[0]}']['err'] < 1 * u.mag
         ax = fig.add_subplot(gs[0, 0])
@@ -229,15 +230,9 @@ class PreviewDiffPhotometry:
         ax3.plot(dph['time'], (dph[band[1]]['err']),
                  '.', label=f'Target {band[1]}', color=BAND_COLOR[band[1]])
         ax3.set_xlabel('JD')
-        # ax3.plot(dph[f'peak {band[0]}'], (dph[band[0]]['err']),
-        #          '.', label=f'Target {band[0]}', color=BAND_COLOR[band[0]])
-        # ax3.plot(dph[f'peak {band[1]}'], (dph[band[1]]['err']),
-        #          '.', label=f'Target {band[1]}', color=BAND_COLOR[band[1]])
-        # ax3.set_xlabel('Peak')
         ax3.set_ylabel('Target uncertainty')
         ax3.set_title(f'{star} Photometry errors for ${{{band[0]}}}$ and ${{{band[1]}}}$')
 
-        #ax4 = ax3.twinx()
         ax4 = fig.add_subplot(gs[2, 0])
         ax4.plot(dph['time'], (self.check_err_data(dph, band[0])),
                  '+', label=f'Target {band[0]}', color=BAND_COLOR[band[0]])
@@ -253,15 +248,24 @@ class PreviewDiffPhotometry:
         ax5.set_xlabel('JD')
         ax5.set_ylabel('Target peak')
 
-        # ax2 = fig.add_subplot(gs[2, 0])
-        # ci = dph[f'{band[0]}']['mag'] - dph[f'{band[1]}']['mag']
-        # u_ci = np.sqrt(np.square(dph[f'check {band[0]}']['err']) + np.square(dph[f'check {band[1]}']['err']))
-        # ax2.errorbar(dph['time'], ci, yerr=u_ci/2, fmt='o', color='grey')
-        # ax2.xaxis.set_major_formatter(fmter)
-        # ax2.invert_yaxis()
-        # ax2.set_xlabel('JD')
-        # ax2.set_ylabel('Magnitude')
-        # ax2.set_title(f'{star} Color Index ${{{band[0]}-{band[1]}}}$')
+        xfm = list([xfm for _, _, _, _, xfm, _ in td])
+        am = list([airmass for _, _, _, _, _, airmass in td])
+        ax6 = fig.add_subplot(gs[4, 0])
+        ax6.errorbar(dph['time'], [t.Ta for t in xfm],
+                    yerr=[t.Ta_err/2 for t in xfm], fmt='o',
+                    label="Ta", color=BAND_COLOR[band[0]])
+        ax6.errorbar(dph['time'], [t.Tb for t in xfm],
+                    yerr=[t.Tb_err/2 for t in xfm], fmt='o',
+                    label="Tb", color=BAND_COLOR[band[1]])
+        ax6.set_xlabel('JD')
+        ax6.set_ylabel('Tbv')
+
+        ax7 = fig.add_subplot(gs[5, 0])
+        ax7.plot(dph['time'], am,
+                 '.', color='grey')
+        ax7.set_xlabel('JD')
+        ax7.set_ylabel('Air mass')
+
 
         plt.show()
 
