@@ -14,8 +14,9 @@ class SimpleTransform:
     to the instrumental magnitudes extracted from those images.
     """
 
-    def __init__(self, band_a: str, band_b: str, Ta: ValErr, Tab: ValErr):
+    def __init__(self, band_a: str, band_b: str, Ta: ValErr, Tb: ValErr, Tab: ValErr):
         self.Ta, self.Ta_err = Ta
+        self.Tb, self.Tb_err = Tb
         self.Tab, self.Tab_err = Tab
         self.band_a = band_a
         self.band_b = band_b
@@ -89,6 +90,7 @@ class SimpleTransform:
 
         (1)  a - b = T_ab * (A - B) + C_ab
         (2)  A-a = T_a * (A - B) + C_a
+        (3)  B-b = T_b * (A - B) + C_b
 
         T_ab determines transformation of instrumental color index to standard
         color index.  T_a corrects transformation from instrumental to standard
@@ -113,13 +115,16 @@ class SimpleTransform:
         AB = b[band_a]['mag'] - b[band_b]['mag']
         ab = b[f'instr {band_a}']['mag'] - b[f'instr {band_b}']['mag']
         Aa = b[band_a]['mag'] - b[f'instr {band_a}']['mag']
+        Bb = b[band_b]['mag'] - b[f'instr {band_b}']['mag']
         reg_ab = sst.linregress(AB, ab)
         reg_Aa = sst.linregress(AB, Aa)
+        reg_Bb = sst.linregress(AB, Bb)
 
         if reg_Aa.stderr == 0 or reg_ab.stderr == 0:
             raise Exception("Zero stderr%")
 
         result = SimpleTransform(band_a, band_b,
                                  (reg_Aa.slope, reg_Aa.stderr),
+                                 (reg_Bb.slope, reg_Bb.stderr),
                                  (1/reg_ab.slope, reg_ab.stderr))
         return result
