@@ -194,7 +194,7 @@ class PreviewDiffPhotometry:
         dph = xfm.calc(td)
 
         if self.save_tables_:
-            dph.write(self.session_path / f'Result_{band[0]}_{band[1]}', format='ascii.ecsv', overwrite=True)
+            dph.write(self.session_path / f'Result_{band[0]}_{band[1]}.ecsv', format='ascii.ecsv', overwrite=True)
             QTable([
             Column([x[0] for x in td],
                    name='id'),
@@ -210,15 +210,15 @@ class PreviewDiffPhotometry:
                    name='Ta'),
             Column([x[4].Ta_err for x in td],
                    name='Ta_err'),
-            Column([x[4].Ta for x in td],
+            Column([x[4].Tb for x in td],
                    name='Tb'),
-            Column([x[4].Ta_err for x in td],
+            Column([x[4].Tb_err for x in td],
                    name='Tb_err'),
-            Column([x[4].Ta for x in td],
+            Column([x[4].Tab for x in td],
                    name='Tab'),
-            Column([x[4].Ta_err for x in td],
+            Column([x[4].Tab_err for x in td],
                    name='Tab_err'),
-            ]).write(self.session_path / f'Tr_{band[0]}_{band[1]}', format='ascii.ecsv', overwrite=True)
+            ]).write(self.session_path / f'Tr_{band[0]}_{band[1]}.ecsv', format='ascii.ecsv', overwrite=True)
 
         def plot_band(ax, data, band):
             ax.errorbar(data['time'], data[f'{band}']['mag'],
