@@ -193,27 +193,24 @@ class PreviewDiffPhotometry:
 
         def plot_band(ax, data, band):
             ax.errorbar(data['time'], data[f'{band}']['mag'],
-                        yerr=data[f'check {band}']['err']/2, fmt='o',
+                        yerr=data[f'{band}']['err']/2, fmt='.',
                         label=band, color=BAND_COLOR[band])
-            # dc = data[f'check {band}']['mag'] - data[f'check std {band}']['mag']
-            # dc_mean = np.mean(dc)
-            # dc_std = np.std(dc)
-            # flt = np.abs(dc - dc_mean) < 2*dc_std
-            # good = data
-            # bad = data[~flt]
-            # ax.errorbar(good['time'], good[f'{band}']['mag'],
-            #             yerr=good[f'check {band}']['err']/2, fmt='o', label=band)
-            # ax.errorbar(bad['time'], bad[f'{band}']['mag'], yerr=bad[f'check {band}']['err']/2, fmt='o')
+        def plot_band_1(ax, data, band):
+            ax.errorbar(data['time'], data[f'{band}_1']['mag'],
+                        yerr=data[f'{band}']['err']/2, fmt='+',
+                        label=band, color=BAND_COLOR[band])
 
         star = self.chart_.meta.get('star', '???')
 
         fig = plt.figure(figsize=(10.24, 30.0))
-        gs = fig.add_gridspec(6, 1)
+        gs = fig.add_gridspec(7, 1)
         #ax = plt.subplot()
         #flt = dph[f'check {band[0]}']['err'] < 1 * u.mag
         ax = fig.add_subplot(gs[0, 0])
         plot_band(ax, dph, band[0])
         plot_band(ax, dph, band[1])
+        plot_band_1(ax, dph, band[0])
+        plot_band_1(ax, dph, band[1])
         ax.invert_yaxis()
         fmter = ScalarFormatter()
         fmter.set_powerlimits((-4, 8))
@@ -261,10 +258,18 @@ class PreviewDiffPhotometry:
         ax6.set_ylabel('Tbv')
 
         ax7 = fig.add_subplot(gs[5, 0])
-        ax7.plot(dph['time'], am,
-                 '.', color='grey')
-        ax7.set_xlabel('JD')
-        ax7.set_ylabel('Air mass')
+        ax7.plot(am, [t.Ta for t in xfm],
+                 '.', color=BAND_COLOR[band[0]])
+        ax7.plot(am, [t.Tb for t in xfm],
+                 '.', color=BAND_COLOR[band[1]])
+        ax7.set_xlabel('Air mass')
+        ax7.set_ylabel('Tx')
+
+        ax8 = fig.add_subplot(gs[6, 0])
+        ax8.plot(dph['time'], dph[f'{band[0]}']['mag'] - dph[f'{band[0]}_1']['mag'],
+                 '.', color=BAND_COLOR[band[0]])
+        ax8.set_xlabel('JD')
+        ax8.set_ylabel('delta')
 
 
         plt.show()

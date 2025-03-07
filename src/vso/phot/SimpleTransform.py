@@ -4,6 +4,42 @@ from typing import Tuple
 
 ValErr = Tuple[float, float]
 
+def transform(T_a: ValErr, T_ab: ValErr, A_c: ValErr, B_c: ValErr, a_c: ValErr, b_c: ValErr, a_t: ValErr, b_t: ValErr):
+        Ta, Ta_err = T_a
+        Tab, Tab_err = T_ab
+        Ac, Ac_err = A_c
+        Bc, Bc_err = B_c
+        ac, ac_err = a_c
+        bc, bc_err = b_c
+        at, at_err = a_t
+        bt, bt_err = b_t
+
+        # c_t = a_t - b_t
+        atbt = at-bt
+        # c_C = a_c - b_c
+        acbc = ac-bc
+
+        atbtacbc = atbt - acbc
+        atbtacbc_err = np.sqrt(at_err**2 + bt_err**2 + ac_err**2 + bc_err**2)
+        Tab_abab = Tab * (atbt - acbc)
+        Tab_abab_err = Tab * atbtacbc * \
+            np.sqrt((Tab_err/Tab)**2 + (atbtacbc_err/atbtacbc)**2)
+        # (1)
+        AtBt = (Ac-Bc) + Tab * (atbt - acbc)
+        AtBt_err = np.sqrt(Ac_err**2 + Bc_err**2 + Tab_abab_err**2)
+        # (2)
+        Acac = Ac - ac
+        Ta_Tab_err = Ta * Tab_abab * \
+            np.sqrt((Ta_err/Ta)**2 + (Tab_abab_err/Tab_abab)**2)
+        At = at + Acac + Ta * Tab * (atbt - acbc)
+        At_err = np.sqrt(at_err**2 + Ac_err**2 + ac_err**2 + Ta_Tab_err**2)
+
+        # (3)
+        Bt = At - AtBt
+        Bt_err = np.sqrt(At_err**2 + AtBt_err**2)
+
+        return (At, At_err), (Bt, Bt_err)
+
 
 class SimpleTransform:
     """Magnitude transformation for differential photometry.
@@ -55,31 +91,24 @@ class SimpleTransform:
         at, at_err = split_mag(target[f'instr {self.band_a}'])
         bt, bt_err = split_mag(target[f'instr {self.band_b}'])
 
-        # c_t = a_t - b_t
-        atbt = at-bt
-        # c_C = a_c - b_c
-        acbc = ac-bc
+        r1 =  transform((self.Ta, self.Ta_err),
+                         (self.Tab, self.Tab_err),
+                         (Ac, Ac_err),
+                         (Bc, Bc_err),
+                         (ac, ac_err),
+                         (bc, bc_err),
+                         (at, at_err),
+                         (bt, bt_err))
 
-        atbtacbc = atbt - acbc
-        atbtacbc_err = np.sqrt(at_err**2 + bt_err**2 + ac_err**2 + bc_err**2)
-        Tab_abab = self.Tab * (atbt - acbc)
-        Tab_abab_err = self.Tab * atbtacbc * \
-            np.sqrt((self.Tab_err/self.Tab)**2 + (atbtacbc_err/atbtacbc)**2)
-        # (1)
-        AtBt = (Ac-Bc) + self.Tab * (atbt - acbc)
-        AtBt_err = np.sqrt(Ac_err**2 + Bc_err**2 + Tab_abab_err**2)
-        # (2)
-        Acac = Ac - ac
-        Ta_Tab_err = self.Ta * Tab_abab * \
-            np.sqrt((self.Ta_err/self.Ta)**2 + (Tab_abab_err/Tab_abab)**2)
-        At = at + Acac + self.Ta * self.Tab * (atbt - acbc)
-        At_err = np.sqrt(at_err**2 + Ac_err**2 + ac_err**2 + Ta_Tab_err**2)
-
-        # (3)
-        Bt = At - AtBt
-        Bt_err = np.sqrt(At_err**2 + AtBt_err**2)
-
-        return (At, At_err), (Bt, Bt_err)
+        r2 =  transform((self.Tb, self.Tb_err),
+                         (self.Tab, self.Tab_err),
+                         (Bc, Bc_err),
+                         (Ac, Ac_err),
+                         (bc, bc_err),
+                         (ac, ac_err),
+                         (bt, bt_err),
+                         (at, at_err))
+        return r1[0], r1[1], r2[1], r2[0]
 
     @staticmethod
     def create(batch, band_a: str, band_b: str):
