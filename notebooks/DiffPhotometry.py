@@ -1,6 +1,6 @@
 import ipywidgets as widgets
 import itertools
-from astropy.table import QTable
+from astropy.table import QTable, Column
 import vso.phot
 import matplotlib.pyplot as plt
 from matplotlib import ticker
@@ -63,7 +63,9 @@ def confirm_settings(preview, layout):
                          layout=box_layout))
 
 class PreviewDiffPhotometry:
-    def __init__(self, settings, layout) -> None:
+    def __init__(self, settings, layout, save_tables=False) -> None:
+        self.save_tables_ = save_tables
+        self.session_path = layout.root_dir
         self.phot_ = QTable.read(layout.photometry_file_path)
         self.chart_ = QTable.read(layout.chart_file_path)
         self.provider_ = vso.phot.DataProvider(
@@ -85,7 +87,6 @@ class PreviewDiffPhotometry:
             layout=widgets.Layout(width='auto')
         )
         self.table_comp_ = None
-        self.band_updated()
         self.wgt_comp_.observe(self.comp_updated, 'value')
 
         self.table_check_ = None
@@ -95,7 +96,7 @@ class PreviewDiffPhotometry:
             description = 'Check star',
             layout=widgets.Layout(width='auto')
         )
-        self.comp_updated()
+        self.band_updated()
 
     @property
     def settings(self):
@@ -112,8 +113,8 @@ class PreviewDiffPhotometry:
         self.wgt_check_.rows=len(self.table_check_)
 
     def format_label(self, row, band):
-        return (f"{row['auid']}: σ{band[0]}={row[band[0]]:.3g}, "
-                f"σ{band[1]}={row[band[1]]:.3g},  N={row['N']}")
+        return (f"{row['auid']}: Σ{band[0]}={row[band[0]]:.3g}, "
+                f"Σ{band[1]}={row[band[1]]:.3g},  N={row['N']}")
 
     def band_updated(self, *args):
         band = self.bands_[self.wgt_band_.value]
@@ -123,6 +124,7 @@ class PreviewDiffPhotometry:
             (self.format_label(row, band), n)
             for row, n in zip(self.table_comp_, itertools.count())]
         self.wgt_comp_.rows=len(self.table_comp_)
+        self.comp_updated()
 
     def target_err(self, data, band):
         return np.sqrt(np.sum(data[band]['err']**2) / len(data))
@@ -191,13 +193,36 @@ class PreviewDiffPhotometry:
         td =  xfm.combine(self.provider_)
         dph = xfm.calc(td)
 
+        if self.save_tables_:
+            dph.write(self.session_path / f'Result_{band[0]}_{band[1]}', format='ascii.ecsv', overwrite=True)
+            QTable([
+            Column([x[0] for x in td],
+                   name='id'),
+            Column([x[1]['auid'][0] for x in td],
+                   name='target'),
+            Column([x[2]['auid'][0] for x in td],
+                   name='comp'),
+            Column([None if x[3] is None else x[3]['auid'][0]  for x in td],
+                   name='check'),
+            Column([x[5] for x in td],
+                   name='airmass'),
+            Column([x[4].Ta for x in td],
+                   name='Ta'),
+            Column([x[4].Ta_err for x in td],
+                   name='Ta_err'),
+            Column([x[4].Ta for x in td],
+                   name='Tb'),
+            Column([x[4].Ta_err for x in td],
+                   name='Tb_err'),
+            Column([x[4].Ta for x in td],
+                   name='Tab'),
+            Column([x[4].Ta_err for x in td],
+                   name='Tab_err'),
+            ]).write(self.session_path / f'Tr_{band[0]}_{band[1]}', format='ascii.ecsv', overwrite=True)
+
         def plot_band(ax, data, band):
             ax.errorbar(data['time'], data[f'{band}']['mag'],
                         yerr=data[f'{band}']['err']/2, fmt='.',
-                        label=band, color=BAND_COLOR[band])
-        def plot_band_1(ax, data, band):
-            ax.errorbar(data['time'], data[f'{band}_1']['mag'],
-                        yerr=data[f'{band}']['err']/2, fmt='+',
                         label=band, color=BAND_COLOR[band])
 
         star = self.chart_.meta.get('star', '???')
@@ -209,8 +234,6 @@ class PreviewDiffPhotometry:
         ax = fig.add_subplot(gs[0, 0])
         plot_band(ax, dph, band[0])
         plot_band(ax, dph, band[1])
-        plot_band_1(ax, dph, band[0])
-        plot_band_1(ax, dph, band[1])
         ax.invert_yaxis()
         fmter = ScalarFormatter()
         fmter.set_powerlimits((-4, 8))
