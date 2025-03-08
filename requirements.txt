@@ -15,5 +15,6 @@ astroquery
 ipykernel
 notebook==6.5.7
 ipywidgets
+ipympl
 widgetsnbextension
 jupyter_contrib_nbextensions
