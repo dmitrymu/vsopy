@@ -11,6 +11,22 @@ VSX_VOTABLE_FIELDS = set([
     'maxMag', 'maxPass', 'minMag', 'minPass'
 ])
 
+def extract_metadata(chart):
+    meta=dict(
+        chart_id=chart['chartid'],
+    )
+    if 'auid' in chart:
+        meta['auid'] = chart['auid']
+    if 'star' in chart:
+        meta['star'] = chart['star']
+    if 'ra' in chart and 'dec' in chart:
+        meta['radec2000'] = SkyCoord(
+            ra=Angle(chart['ra'], unit=u.hourangle),
+            dec=Angle(chart['dec'], unit=u.deg)
+        )
+    return meta
+
+
 
 class AavsoParser:
     """ Parse data received from AAVSO HTTP APIs
@@ -130,20 +146,8 @@ class AavsoParser:
         )
 
         result.update(bands)
-        meta=dict(
-            chart_id=chart['chartid'],
-        )
-        if 'auid' in chart:
-            meta['auid'] = chart['auid']
-        if 'star' in chart:
-            meta['star'] = chart['star']
-        if 'ra' in chart and 'dec' in chart:
-            meta['radec2000'] = SkyCoord(
-                ra=Angle(chart['ra'], unit=u.hourangle),
-                dec=Angle(chart['dec'], unit=u.deg)
-            )
 
-        return QTable(result, meta=meta)
+        return QTable(result, meta=extract_metadata(chart))
 
     def parse_norm_chart(self, text: str) -> Tuple[QTable, QTable]:
         """Parse chart photometry data from AAVSO VSP to normalized form
@@ -186,19 +190,4 @@ class AavsoParser:
                         dtype=[('val', 'f4'), ('err', 'f4')])
         )
 
-        meta=dict(
-            chart_id=chart['chartid'],
-        )
-
-        if 'auid' in chart:
-            meta['auid'] = chart['auid']
-        if 'star' in chart:
-            meta['star'] = chart['star']
-        if 'ra' in chart and 'dec' in chart:
-            meta['radec2000'] = SkyCoord(
-                ra=Angle(chart['ra'], unit=u.hourangle),
-                dec=Angle(chart['dec'], unit=u.deg)
-            )
-
-
-        return QTable(centroids), QTable(sequence, meta=meta)
+        return QTable(centroids), QTable(sequence, meta=extract_metadata(chart))
