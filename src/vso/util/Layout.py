@@ -82,6 +82,11 @@ class SessionLayout(LayoutBase):
     @property
     def centroid_file_path(self):
         return self.root_dir / 'centroids.ecsv'
+
+    @property
+    def sequence_file_path(self):
+        return self.root_dir / 'sequence.ecsv'
+
     @property
     def settings_file_path(self):
         return self.root_dir / 'settings.json'

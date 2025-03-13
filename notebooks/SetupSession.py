@@ -28,7 +28,6 @@ def use_dark_theme(**kwargs):
     plt.style.use(theme)
 
 def confirm_settings(preview, layout):
-        # settings, settings_path):
     settings = preview.settings
     settings_path = layout.settings_file_path
     prev_settings = {}
@@ -53,6 +52,7 @@ def confirm_settings(preview, layout):
         with open(settings_path, mode='w') as file:
             json.dump(settings, file)
         preview.centroid.write(layout.centroid_file_path, format='ascii.ecsv', overwrite=True)
+        preview.sequence.write(layout.sequence_file_path, format='ascii.ecsv', overwrite=True)
         done.value=True
         done.description='Saved'
 
@@ -75,14 +75,18 @@ def get_image_fov(image):
 
 def get_image_stars(sd, image):
     object_name = image.header['object']
-    objects = ([object_name] if not sd.is_std_field(object_name)
-                else [n for n in sd.std_fields['name']
-                    if n == object_name or n.startswith(f"{object_name} ")])
+    centroids, sequence = None, None
+    if sd.is_std_field(object_name):
+        objects = [name for name in sd.std_fields['name']
+                        if name == object_name or name.startswith(f"{object_name} ")]
+        charts = [sd.get_chart(name, fov=get_image_fov(image)) for name in objects]
 
-    stars = unique(vstack([sd.get_chart(name,
-                                       fov=get_image_fov(image))
-                          for name in objects]))
-    return stars[image.wcs.footprint_contains(stars['radec2000'])]
+        stars = unique(vstack([centroids for centroids, _ in charts]))
+        sequence = unique(vstack([sequence for _, sequence in charts]))
+    else:
+        stars, sequence = sd.get_chart(object_name, fov=get_image_fov(image))
+    centroids = stars[image.wcs.footprint_contains(stars['radec2000'])]
+    return centroids, sequence[np.isin(sequence['auid'], stars['auid'])]
 
 class ImagePreview:
     def __init__(self, image_dir, stardata, blacklist_path, solved_dir) -> None:
@@ -92,6 +96,7 @@ class ImagePreview:
         self.files_ = {d.parts[-1]: ccdp.ImageFileCollection(d) for d in band_dirs}
         self.image_ = None
         self.chart_ = None
+        self.sequence_ = None
         self.stardata_ = stardata
         self.band_ = None
         self.solved_dir_ = solved_dir
@@ -123,6 +128,14 @@ class ImagePreview:
     def chart(self):
         return self.chart_
 
+    @property
+    def sequence(self):
+        return self.sequence_
+
+    @property
+    def meta(self):
+        return self.sequence_.meta
+
     def band_updated(self, *args):
         self.band_ = self.wgt_band.value
         self.wgt_file.options = self.files_[self.band_].summary['file']
@@ -135,9 +148,6 @@ class ImagePreview:
 
     def highlight_star(self, ax, pos, title, r , edgecolor='orange'):
         ax.add_patch(Circle(pos, radius=r, edgecolor=edgecolor, facecolor='none', alpha = .5))
-        # tx, ty = wcs.pixel_shape[0]+60, wcs.pixel_shape[1] - (n+1) * 60
-        # ax.text(tx, ty, f"{n+1}: {star['auid']}")
-        # ax.annotate(f"{n+1}", c)
 
     def plot_preview(self, band, file, alpha):
         ifc = self.files_[band]
@@ -147,21 +157,20 @@ class ImagePreview:
             return
         try:
             self.image_  = vso.reduce.load_and_solve(path, self.solved_dir_)
-            self.chart_ = get_image_stars(self.stardata_, self.image_ )
+            self.chart_, self.sequence_ = get_image_stars(self.stardata_, self.image_ )
             wcs = self.image_ .wcs
             interval = MinMaxInterval()
             vmin, vmax = interval.get_limits(self.image_ .data)
             norm = ImageNormalize(vmin=vmin, vmax=vmax, stretch=AsinhStretch(alpha))
             fig = plt.figure(figsize=(10.24, 10.24))
-            #ax = plt.subplot(projection=wcs)
             ax = plt.subplot()
             ax.imshow(self.image_.data,  origin='lower', norm=norm)
             for star, n in zip(self.chart_, it.count()):
                 r = 20
                 c = wcs.world_to_pixel(star['radec2000'])
                 self.highlight_star(ax, c, f"{n+1}", r)
-            if 'auid' in self.chart_.meta:
-                c = wcs.world_to_pixel(self.chart_.meta['radec2000'])
+            if 'auid' in self.meta:
+                c = wcs.world_to_pixel(self.meta['radec2000'])
                 self.highlight_star(ax, c, f"{n+1}", r, edgecolor='yellow')
 
             ax.set_title(f"{self.image_.header['object']}, {self.band_}, "
@@ -185,13 +194,13 @@ class ImagePreview:
                                                     description="Stretch Factor"))
 
 class PreviewPhotometry:
-    def __init__(self, image, chart, settings_path, centroid_path) -> None:
+    def __init__(self, preview, layout) -> None:
         self.r_ap = 5*u.arcsec
         self.r_ann = (10*u.arcsec, 15*u.arcsec)
         self.stars_disabled = set()
         self.settings_ = {}
-        if settings_path.exists():
-            with open(settings_path) as file:
+        if layout.settings_file_path.exists():
+            with open(layout.settings_file_path) as file:
                 self.settings_ = json.load(file)
                 if 'aperture' in self.settings_:
                     a = self.settings_['aperture']
@@ -201,21 +210,22 @@ class PreviewPhotometry:
                 if 'disabled' in self.settings_:
                     self.stars_disabled = set(self.settings_['disabled'])
 
-        self.image_ = image.divide(4)
-        self.image_.header = image.header
-        draft = chart['auid', 'radec2000']
+        self.image_ = preview.image.divide(4)
+        self.image_.header = preview.image.header
+        draft = preview.chart['auid', 'radec2000']
         self.target_auid_ = None
         self.target_name_ = None
-        if 'auid' in chart.meta:
-            self.target_auid_ = chart.meta['auid']
-            self.target_name_ = chart.meta['star']
-            target = QTable(dict(auid=[self.target_auid_], radec2000=[chart.meta['radec2000']]))
+        self.sequence_ = preview.sequence
+        if 'auid' in preview.meta:
+            self.target_auid_ = preview.meta['auid']
+            self.target_name_ = preview.meta['star']
+            target = QTable(dict(auid=[self.target_auid_], radec2000=[preview.meta['radec2000']]))
             draft = vstack([target, draft])
-        draft.rename_column('radec2000', 'sky_centroid')
-        if centroid_path.exists():
-            self.centroid = QTable.read(centroid_path, format='ascii.ecsv')
+        if layout.centroid_file_path.exists():
+            self.centroid = QTable.read(layout.centroid_file_path, format='ascii.ecsv')
         else:
             self.centroid = vso.phot.measure_photometry(image, draft, self.r_ap, self.r_ann)['auid', 'sky_centroid']
+            self.centroid.rename_column('sky_centroid', 'radec2000')
 
         self.wgt_enable = [widgets.Checkbox(value=star['auid'] not in self.stars_disabled,
                                             description=star['auid'],
@@ -240,6 +250,10 @@ class PreviewPhotometry:
         return self.image_.header['SCALE'] * u.arcsec / u.pix
 
     @property
+    def sequence(self):
+        return self.sequence_
+
+    @property
     def settings(self):
         result=self.settings_
         result.setdefault('aperture',{})['unit'] = str(u.arcsec)
@@ -253,6 +267,7 @@ class PreviewPhotometry:
         self.r_ap = r*u.arcsec
         self.r_ann = (r_in*u.arcsec, r_out*u.arcsec)
         self.ph = vso.phot.measure_photometry(self.image_, self.centroid, self.r_ap, self.r_ann)
+        self.ph.rename_column('sky_centroid', 'radec2000')
         nrows = (len(self.ph)+1) // ncols + 1
         for row in range(nrows):
             sl = slice(row*ncols, (row+1)*ncols)
@@ -262,7 +277,7 @@ class PreviewPhotometry:
             with vp.grid_figure(self.ph[sl], ncols=ncols, width=width) as (fig, cells):
                 #fig.suptitle(f"Stars for object {self.image_.header['OBJECT']}")
                 for star, cell in cells:
-                    ax, cut = vp.cutout(fig, self.image_, star['sky_centroid'], (tile, tile),
+                    ax, cut = vp.cutout(fig, self.image_, star['radec2000'], (tile, tile),
                                     subplot=cell)
                     ax.set_title(f"{self.target_name_ if star['auid'] == self.target_auid_ else star['auid']}\n"
 #                                fr"$\ {self.image_.header['FILTER']}_{{instr}} = {star['M']['mag'].value:.3g}$"
@@ -272,7 +287,7 @@ class PreviewPhotometry:
                     if star['auid'] in self.stars_disabled:
                         vp.xcross(ax, cut.center_cutout, tile-2,
                                 color='orange', alpha=.5)
-                    c = cut.wcs.world_to_pixel(star['sky_centroid'])
+                    c = cut.wcs.world_to_pixel(star['radec2000'])
                     r_ap = (r/self.pixel_scale).value
                     r_1 = (r_in/self.pixel_scale).value if r_in is not None else r_ap * 2
                     r_2 = (r_out/self.pixel_scale).value if r_out is not None else r_ap * 3
