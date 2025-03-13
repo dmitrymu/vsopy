@@ -3,7 +3,8 @@ import json
 import numpy as np
 import xml.etree.ElementTree as ET
 from astropy.coordinates import SkyCoord, Angle
-from astropy.table import QTable, Column, MaskedColumn
+from astropy.table import QTable, Column
+from typing import Tuple
 
 VSX_VOTABLE_FIELDS = set([
     'auid', 'name', 'const', 'radec2000', 'varType',
@@ -93,7 +94,6 @@ class AavsoParser:
         Returns:
             QTable: photometry data
         """
-        print(text)
         chart = json.loads(text)
         if 'errors' in chart:
             raise RuntimeError(f"Error from AAVSO API for target {meta['name']}: "
@@ -144,3 +144,61 @@ class AavsoParser:
             )
 
         return QTable(result, meta=meta)
+
+    def parse_norm_chart(self, text: str) -> Tuple[QTable, QTable]:
+        """Parse chart photometry data from AAVSO VSP to normalized form
+
+        Args:
+            text (str): JSON text returned by AavsoApi.get_star_chart,
+                        AavsoApi.get_std_field_chart, or AavsoApi.get_chart_by_id
+
+        Raises:
+            RuntimeError: if received data indicates any error.
+
+        Returns:
+            Tuple of two QTable:
+            - 'centroids': auid, RA, Dec
+            - 'sequence': auid, band, magnitude, error
+        """
+        chart = json.loads(text)
+        if 'errors' in chart:
+            raise RuntimeError(f"Error from AAVSO API for target {meta['name']}: "
+                            f"{';'.join(chart['errors'])}")
+        if len(chart['photometry']) == 0:
+            return (None, None)
+
+        centroids = dict(
+            auid=[star['auid'] for star in chart['photometry']],
+            radec2000=SkyCoord(
+                ra=[Angle(star['ra'], unit=u.hourangle)
+                    for star in chart['photometry']],
+                dec=[Angle(star['dec'], unit=u.deg)
+                     for star in chart['photometry']]
+            )
+        )
+
+        bands = [(star, band) for star in chart['photometry'] for band in star['bands']]
+        sequence = dict(
+            auid = [star['auid'] for star, _ in bands],
+            band = [band['band'] for _, band in bands],
+            mag = Column([(float(band['mag']), float(band['error'])) for _, band in bands],
+                        unit=u.mag,
+                        dtype=[('val', 'f4'), ('err', 'f4')])
+        )
+
+        meta=dict(
+            chart_id=chart['chartid'],
+        )
+
+        if 'auid' in chart:
+            meta['auid'] = chart['auid']
+        if 'star' in chart:
+            meta['star'] = chart['star']
+        if 'ra' in chart and 'dec' in chart:
+            meta['radec2000'] = SkyCoord(
+                ra=Angle(chart['ra'], unit=u.hourangle),
+                dec=Angle(chart['dec'], unit=u.deg)
+            )
+
+
+        return QTable(centroids), QTable(sequence, meta=meta)
