@@ -17,6 +17,7 @@ import logging
 from matplotlib.patches import Circle
 from IPython.display import display
 import json
+import vso.data
 import vso.reduce
 import vso.phot
 import vso.plot as vp
@@ -210,7 +211,9 @@ class PreviewPhotometry:
                 if 'disabled' in self.settings_:
                     self.stars_disabled = set(self.settings_['disabled'])
 
-        self.image_ = preview.image.divide(4)
+        camera = vso.data.CameraRegistry.get(preview.image.header['instrume'])
+        if camera is not None:
+            self.image_ = preview.image.divide(camera.adu_scale)
         self.image_.header = preview.image.header
         draft = preview.chart['auid', 'radec2000']
         self.target_auid_ = None
@@ -224,7 +227,7 @@ class PreviewPhotometry:
         if layout.centroid_file_path.exists():
             self.centroid = QTable.read(layout.centroid_file_path, format='ascii.ecsv')
         else:
-            self.centroid = vso.phot.measure_photometry(image, draft, self.r_ap, self.r_ann)['auid', 'sky_centroid']
+            self.centroid = vso.phot.measure_photometry(self.image_, draft, self.r_ap, self.r_ann)['auid', 'sky_centroid']
             self.centroid.rename_column('sky_centroid', 'radec2000')
 
         self.wgt_enable = [widgets.Checkbox(value=star['auid'] not in self.stars_disabled,
@@ -267,6 +270,7 @@ class PreviewPhotometry:
         self.r_ap = r*u.arcsec
         self.r_ann = (r_in*u.arcsec, r_out*u.arcsec)
         self.ph = vso.phot.measure_photometry(self.image_, self.centroid, self.r_ap, self.r_ann)
+        self.ph.remove_column('radec2000')
         self.ph.rename_column('sky_centroid', 'radec2000')
         nrows = (len(self.ph)+1) // ncols + 1
         for row in range(nrows):
