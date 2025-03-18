@@ -88,6 +88,10 @@ class SessionLayout(LayoutBase):
         return self.root_dir / 'sequence.ecsv'
 
     @property
+    def images_file_path(self):
+        return self.root_dir / 'images.ecsv'
+
+    @property
     def settings_file_path(self):
         return self.root_dir / 'settings.json'
 
