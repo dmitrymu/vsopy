@@ -30,13 +30,18 @@ class ApertureTest(unittest.TestCase):
     def test_conversion(self):
 
         ap= Aperture(1, 2, 3)
-        d = ap.todict()
+        d = ap.to_dict()
         self.assertDictEqual(d, dict(r_ap=1, r_in=2, r_out=3, unit=str(u.arcsec)))
 
-        ap1 = Aperture.fromdict(d)
+        ap1 = Aperture.from_dict(d)
         self.assertEqual(ap1.r, 1*u.arcsec)
         self.assertEqual(ap1.r_in, 2*u.arcsec)
         self.assertEqual(ap1.r_out, 3*u.arcsec)
+
+        ap2 = ap1.to_pixels(2*u.arcsec/u.pixel)
+        self.assertEqual(ap2.r, .5*u.pixel)
+        self.assertEqual(ap2.r_in, 1.0*u.pixel)
+        self.assertEqual(ap2.r_out, 1.5*u.pixel)
 
 class SettingsTest(unittest.TestCase):
 
@@ -68,9 +73,20 @@ class SettingsTest(unittest.TestCase):
         s = Settings(None)
         self.assertTrue(s.is_star_enabled('star1'))
         self.assertTrue(s.is_star_enabled('star2'))
+        self.assertTrue(s.is_star_enabled('star1'))
+        self.assertTrue(s.is_star_enabled('star2'))
+
         s.disable_star('star1')
         self.assertFalse(s.is_star_enabled('star1'))
         self.assertTrue(s.is_star_enabled('star2'))
+
+        s.disable_star('star1')  # assert no exception
+
+        s.enable_star('star1')
+        self.assertTrue(s.is_star_enabled('star1'))
+        self.assertTrue(s.is_star_enabled('star2'))
+
+        s.enable_star('star1') # assert no exception
 
     @patch('builtins.open', new_callable=mock_open, read_data=DEFAULT_JSON)
     def test_load(self, mock_open):

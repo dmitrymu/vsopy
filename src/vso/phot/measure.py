@@ -1,9 +1,9 @@
 import astropy.units as u
 import ccdproc as ccdp
 import numpy as np
+from .. import reduce
 from .. import util
 from ..data import CameraRegistry
-from astropy.io import fits
 from astropy.nddata import CCDData
 from astropy.stats import sigma_clipped_stats
 from astropy.table import QTable, Column
@@ -14,7 +14,7 @@ from photutils.aperture import (ApertureStats,
                                 SkyCircularAnnulus)
 
 
-def measure_photometry(image, stars, r_ap, r_ann, extended=False):
+def measure_photometry(image, stars, aperture, extended=False):
     """Extract aperture photometry data from the image.
 
     Given the calibrated image and the list of star centroids in sky coordinates,
@@ -66,13 +66,12 @@ def measure_photometry(image, stars, r_ap, r_ann, extended=False):
 
     corrected = CCDData(image)
 
-    apr = SkyCircularAperture(stars['radec2000'], r=r_ap)
+    apr = SkyCircularAperture(stars['radec2000'], r=aperture.r)
     ap_stats = ApertureStats(corrected, apr)
 
-    r_in, r_out = r_ann
     ann = SkyCircularAnnulus(stars['radec2000'],
-                             r_in=r_in,
-                             r_out=r_out)
+                             r_in=aperture.r_in,
+                             r_out=aperture.r_out)
     ann_stats = ApertureStats(corrected, ann)
 
     zero_level = 1_000_000 * image.unit / u.second
@@ -106,3 +105,13 @@ def measure_photometry(image, stars, r_ap, r_ann, extended=False):
         result['orientation'] = ap_stats.orientation
 
     return result
+
+# def measure_image(path, matcher, solver):
+#         image = solver(path)
+#         calibration = matcher.match(image.header)
+#         reduced = reduce.calibrate_image(image,
+#                                   dark=calibration.dark,
+#                                   flat=calibration.flat)
+#         phot_table = measure_photometry(reduced, self.stars_,
+#                                         self.aperture_.r,
+#                                         (self.aperture_.r_in, self.aperture_.r_out))

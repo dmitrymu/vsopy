@@ -22,6 +22,7 @@ import vso.reduce
 import vso.phot
 import vso.plot as vp
 import matplotlib.pyplot as plt
+from vso.util import Aperture, Settings
 
 def use_dark_theme(**kwargs):
     theme = dict(vp.dark_plot_theme)
@@ -33,25 +34,24 @@ def confirm_settings(preview, layout):
     settings_path = layout.settings_file_path
     prev_settings = {}
     if settings_path.exists():
-        with open(settings_path) as file:
-            prev_settings = json.load(file)
+        prev_settings = Settings(settings_path)
 
 
     button = widgets.Button(description='Save settings')
     text_layout = widgets.Layout(width='50%',
                                 height='16em')
-    prev = widgets.Textarea(value=json.dumps(prev_settings, indent=2),
+    prev = widgets.Textarea(value=json.dumps(prev_settings.data_, indent=2),
                             description='Previous',
                             layout=text_layout,
                             disabled=True)
-    curr = widgets.Textarea(value=json.dumps(settings, indent=2),
+    curr = widgets.Textarea(value=json.dumps(settings.data_, indent=2),
                             description='Current',
                             layout=text_layout,
                             disabled=True)
     done = widgets.Valid(value=False, description='Not saved', readout='')
     def on_button_clicked(b):
         with open(settings_path, mode='w') as file:
-            json.dump(settings, file)
+            json.dump(settings.data_, file)
         preview.centroid.write(layout.centroid_file_path, format='ascii.ecsv', overwrite=True)
         preview.sequence.write(layout.sequence_file_path, format='ascii.ecsv', overwrite=True)
         done.value=True
@@ -196,20 +196,21 @@ class ImagePreview:
 
 class PreviewPhotometry:
     def __init__(self, preview, layout) -> None:
-        self.r_ap = 5*u.arcsec
-        self.r_ann = (10*u.arcsec, 15*u.arcsec)
-        self.stars_disabled = set()
-        self.settings_ = {}
+        # self.r_ap = 5*u.arcsec
+        # self.r_ann = (10*u.arcsec, 15*u.arcsec)
+        # self.stars_disabled = set()
+        # self.settings_ = Settings(None)
         if layout.settings_file_path.exists():
-            with open(layout.settings_file_path) as file:
-                self.settings_ = json.load(file)
-                if 'aperture' in self.settings_:
-                    a = self.settings_['aperture']
-                    unit = u.Unit(a['unit'])
-                    self.r_ap = a['r_ap'] * unit
-                    self.r_ann = a['r_in'] * unit, a['r_out'] * unit
-                if 'disabled' in self.settings_:
-                    self.stars_disabled = set(self.settings_['disabled'])
+            self.settings_ = Settings(layout.settings_file_path)
+            # with open(layout.settings_file_path) as file:
+            #     self.settings_ = json.load(file)
+            #     if 'aperture' in self.settings_:
+            #         a = self.settings_['aperture']
+            #         unit = u.Unit(a['unit'])
+            #         self.r_ap = a['r_ap'] * unit
+            #         self.r_ann = a['r_in'] * unit, a['r_out'] * unit
+            #     if 'disabled' in self.settings_:
+            #         self.stars_disabled = set(self.settings_['disabled'])
 
         camera = vso.data.CameraRegistry.get(preview.image.header['instrume'])
         if camera is not None:
@@ -227,10 +228,10 @@ class PreviewPhotometry:
         if layout.centroid_file_path.exists():
             self.centroid = QTable.read(layout.centroid_file_path, format='ascii.ecsv')
         else:
-            self.centroid = vso.phot.measure_photometry(self.image_, draft, self.r_ap, self.r_ann)['auid', 'sky_centroid']
+            self.centroid = vso.phot.measure_photometry(self.image_, draft, self.settings_.aperture)['auid', 'sky_centroid']
             self.centroid.rename_column('sky_centroid', 'radec2000')
 
-        self.wgt_enable = [widgets.Checkbox(value=star['auid'] not in self.stars_disabled,
+        self.wgt_enable = [widgets.Checkbox(value=not self.settings_.is_star_enabled(star['auid']),
                                             description=star['auid'],
                                             indent=False,
                                             layout=widgets.Layout(width='auto'),
@@ -240,13 +241,12 @@ class PreviewPhotometry:
             owner = event['owner']
             star = owner.description
             if owner.value:
-                self.stars_disabled.remove(star)
+                self.settings_.disable_star(star)
             else:
-                self.stars_disabled.add(star)
+                self.settings_.enable_star(star)
 
         for wgt in self.wgt_enable:
             wgt.observe(cb_updated, 'value')
-
 
     @property
     def pixel_scale(self):
@@ -258,18 +258,11 @@ class PreviewPhotometry:
 
     @property
     def settings(self):
-        result=self.settings_
-        result.setdefault('aperture',{})['unit'] = str(u.arcsec)
-        result['aperture']['r_ap'] = float(self.r_ap.value)
-        result['aperture']['r_in'] = float(self.r_ann[0].value)
-        result['aperture']['r_out'] = float(self.r_ann[1].value)
-        result['disabled'] = [str(s) for s in self.stars_disabled]
-        return result
+        return self.settings_
 
     def stars_photometry(self, r, r_in=None, r_out=None, tile=60, ncols=6, width=12.80):
-        self.r_ap = r*u.arcsec
-        self.r_ann = (r_in*u.arcsec, r_out*u.arcsec)
-        self.ph = vso.phot.measure_photometry(self.image_, self.centroid, self.r_ap, self.r_ann)
+        self.settings_.set_aperture(Aperture(r, r_in, r_out))
+        self.ph = vso.phot.measure_photometry(self.image_, self.centroid, self.settings_.aperture)
         self.ph.remove_column('radec2000')
         self.ph.rename_column('sky_centroid', 'radec2000')
         nrows = (len(self.ph)+1) // ncols + 1
@@ -288,25 +281,24 @@ class PreviewPhotometry:
                                 '\n'
                                 f"SNR {star['snr']:.3g}\n"
                                 f"Peak {star['peak']:.2%}")
-                    if star['auid'] in self.stars_disabled:
+                    if not self.settings_.is_star_enabled(star['auid']):
                         vp.xcross(ax, cut.center_cutout, tile-2,
                                 color='orange', alpha=.5)
                     c = cut.wcs.world_to_pixel(star['radec2000'])
-                    r_ap = (r/self.pixel_scale).value
-                    r_1 = (r_in/self.pixel_scale).value if r_in is not None else r_ap * 2
-                    r_2 = (r_out/self.pixel_scale).value if r_out is not None else r_ap * 3
-                    vp.circle(ax, c, r_ap,
+                    app = self.settings.aperture.to_pixels(self.pixel_scale)
+                    vp.circle(ax, c, app.r.value,
                               linewidth=2, edgecolor='orange', facecolor='none', alpha=.2)
-                    vp.circle(ax, c, r_1,
+                    vp.circle(ax, c, app.r_in.value,
                               linewidth=2, edgecolor='orange', facecolor='none', alpha=.2)
-                    vp.circle(ax, c, r_2,
+                    vp.circle(ax, c, app.r_out.value,
                               linewidth=2, edgecolor='orange', facecolor='none', alpha=.2)
 
     def run(self, width=12.80):
+        ap = self.settings.aperture
         widgets.interact(self.stars_photometry,
-                        r=widgets.FloatText(value=self.r_ap.value, description='aperture "'),
-                        r_in=widgets.FloatText(value=self.r_ann[0].value, description='annulus inner "'),
-                        r_out=widgets.FloatText(value=self.r_ann[1].value, description='annulus outer "'),
+                        r=widgets.FloatText(value=ap.r.value, description='aperture "'),
+                        r_in=widgets.FloatText(value=ap.r_in.value, description='annulus inner "'),
+                        r_out=widgets.FloatText(value=ap.r_out.value, description='annulus outer "'),
                         tile=widgets.IntSlider(value=40, min=20, max=60, description="Tile size"),
                         ncols=widgets.IntSlider(value=6, min=1, max=12, description="TNumber of columns"),
                         width=width

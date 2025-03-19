@@ -1,14 +1,14 @@
 import astropy.units as u
 import json
 
-def convert_to_unit(x, unit):
-    return x.to(unit) if hasattr(x, 'unit') else x * unit
+def convert_to_unit(x, unit, equiv=None):
+    return (x.to(unit) if equiv is None else x.to(unit, equiv))  if hasattr(x, 'unit') else x * unit
 
 class Aperture:
-    def __init__(self, r, r_in, r_out, unit=u.arcsec):
-        self.r_ = convert_to_unit(r, unit)
-        self.r_in_ = convert_to_unit(r_in, unit)
-        self.r_out_ = convert_to_unit(r_out, unit)
+    def __init__(self, r, r_in, r_out, unit=u.arcsec, scale=None):
+        self.r_ = convert_to_unit(r, unit, scale)
+        self.r_in_ = convert_to_unit(r_in, unit, scale)
+        self.r_out_ = convert_to_unit(r_out, unit, scale)
 
     @property
     def r(self):
@@ -23,15 +23,19 @@ class Aperture:
         return self.r_out_
 
     @staticmethod
-    def fromdict(d):
+    def from_dict(d):
         return Aperture(d['r_ap'], d['r_in'], d['r_out'], u.Unit(d['unit']))
 
-    def todict(self):
+    def to_dict(self):
         unit = self.r_.unit
         return dict(r_ap=float(self.r.to(unit).value),
                     r_in=float(self.r_in.to(unit).value),
                     r_out=float(self.r_out.to(unit).value),
                     unit=str(unit))
+
+    def to_pixels(self, scale):
+        return Aperture(self.r_, self.r_in_, self.r_out_,
+                        u.pixel, u.pixel_scale(scale))
 
 class Settings:
     def __init__(self, path) -> None:
@@ -48,7 +52,7 @@ class Settings:
     @property
     def aperture(self):
         ap = self.data_['aperture']
-        return Aperture.fromdict(ap)
+        return Aperture.from_dict(ap)
 
     @property
     def bands(self):
@@ -63,7 +67,7 @@ class Settings:
         return  band_settings['check'] if 'check' in band_settings else None
 
     def set_aperture(self, aperture):
-        self.data_.setdefault('aperture', {}).update(aperture.todict())
+        self.data_.setdefault('aperture', {}).update(aperture.to_dict())
 
     def set_comp(self, band, value):
         label = f"{band[0]}{band[1]}"
@@ -74,7 +78,13 @@ class Settings:
         self.data_.setdefault("diff_photometry", {}).setdefault(label, {})['check'] = value
 
     def is_star_enabled(self, star):
-        return star not in self.disabled_
+        return (star) not in self.disabled_
 
     def disable_star(self, star):
         self.disabled_.add(star)
+        self.data_['disabled'] = list(self.disabled_)
+
+    def enable_star(self, star):
+        if star in self.disabled_:
+            self.disabled_.remove(star)
+            self.data_['disabled'] = list(self.disabled_)
