@@ -11,6 +11,7 @@ from astropy.coordinates import SkyCoord
 from astropy.table import QTable
 from vso.mock import MockImageBuilder, MockStar
 from vso.phot import measure_photometry
+from vso.util import Aperture
 
 class MeasurePhotometryTest(unittest.TestCase):
 
@@ -37,7 +38,7 @@ class MeasurePhotometryTest(unittest.TestCase):
             radec2000 = SkyCoord(ra=[0] * u.arcsec, dec=[-0] * u.arcsec)
         ))
 
-        ph = measure_photometry(image, centroids, 5*u.arcsec, (10*u.arcsec, 15*u.arcsec))
+        ph = measure_photometry(image, centroids, Aperture(5, 10, 15))
 
         self.assertSequenceEqual(
             ph.colnames, ['auid', 'radec2000', 'flux', 'snr', 'M', 'peak', 'sky_centroid'])
