@@ -1,15 +1,11 @@
 import astropy.units as u
-import ccdproc as ccdp
 import numpy as np
 from .. import reduce
-from .. import util
 from ..data import CameraRegistry
 from astropy.nddata import CCDData
 from astropy.stats import sigma_clipped_stats
 from astropy.table import QTable, Column
-from astropy.wcs import WCS
 from photutils.aperture import (ApertureStats,
-                                CircularAperture,
                                 SkyCircularAperture,
                                 SkyCircularAnnulus)
 
@@ -106,12 +102,14 @@ def measure_photometry(image, stars, aperture, extended=False):
 
     return result
 
-# def measure_image(path, matcher, solver):
-#         image = solver(path)
-#         calibration = matcher.match(image.header)
-#         reduced = reduce.calibrate_image(image,
-#                                   dark=calibration.dark,
-#                                   flat=calibration.flat)
-#         phot_table = measure_photometry(reduced, self.stars_,
-#                                         self.aperture_.r,
-#                                         (self.aperture_.r_in, self.aperture_.r_out))
+
+def process_image(path, matcher, solver, centroids, aperture):
+    try:
+        image = reduce.update_wcs(CCDData.read(path, unit='adu'), solver(path))
+        calibration = matcher.match(image.header)
+        reduced = reduce.calibrate_image(image,
+                                        dark=calibration.dark,
+                                        flat=calibration.flat)
+        return measure_photometry(reduced, centroids, aperture)
+    except Exception:
+        return None
