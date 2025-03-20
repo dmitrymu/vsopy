@@ -52,8 +52,11 @@ def confirm_settings(preview, layout):
     def on_button_clicked(b):
         with open(settings_path, mode='w') as file:
             json.dump(settings.data_, file)
-        preview.centroid.write(layout.centroid_file_path, format='ascii.ecsv', overwrite=True)
-        preview.sequence.write(layout.sequence_file_path, format='ascii.ecsv', overwrite=True)
+        fltr = np.vectorize(lambda x: settings.is_star_enabled(x))(preview.centroid['auid'])
+        centroid = preview.centroid[fltr]
+        centroid.write(layout.centroid_file_path, format='ascii.ecsv', overwrite=True)
+        sequence = preview.sequence[np.isin(preview.sequence['auid'], centroid['auid'])]
+        sequence.write(layout.sequence_file_path, format='ascii.ecsv', overwrite=True)
         done.value=True
         done.description='Saved'
 
@@ -86,8 +89,9 @@ def get_image_stars(sd, image):
         sequence = unique(vstack([sequence for _, sequence in charts]))
     else:
         stars, sequence = sd.get_chart(object_name, fov=get_image_fov(image))
-    centroids = stars[image.wcs.footprint_contains(stars['radec2000'])]
-    return centroids, sequence[np.isin(sequence['auid'], stars['auid'])]
+    fltr = image.wcs.footprint_contains(stars['radec2000'])
+    centroids = stars[fltr]
+    return centroids, sequence[np.isin(sequence['auid'], centroids['auid'])]
 
 class ImagePreview:
     def __init__(self, image_dir, stardata, blacklist_path, solved_dir) -> None:
@@ -196,21 +200,8 @@ class ImagePreview:
 
 class PreviewPhotometry:
     def __init__(self, preview, layout) -> None:
-        # self.r_ap = 5*u.arcsec
-        # self.r_ann = (10*u.arcsec, 15*u.arcsec)
-        # self.stars_disabled = set()
-        # self.settings_ = Settings(None)
         if layout.settings_file_path.exists():
             self.settings_ = Settings(layout.settings_file_path)
-            # with open(layout.settings_file_path) as file:
-            #     self.settings_ = json.load(file)
-            #     if 'aperture' in self.settings_:
-            #         a = self.settings_['aperture']
-            #         unit = u.Unit(a['unit'])
-            #         self.r_ap = a['r_ap'] * unit
-            #         self.r_ann = a['r_in'] * unit, a['r_out'] * unit
-            #     if 'disabled' in self.settings_:
-            #         self.stars_disabled = set(self.settings_['disabled'])
 
         camera = vso.data.CameraRegistry.get(preview.image.header['instrume'])
         if camera is not None:
@@ -225,11 +216,11 @@ class PreviewPhotometry:
             self.target_name_ = preview.meta['star']
             target = QTable(dict(auid=[self.target_auid_], radec2000=[preview.meta['radec2000']]))
             draft = vstack([target, draft])
-        if layout.centroid_file_path.exists():
-            self.centroid = QTable.read(layout.centroid_file_path, format='ascii.ecsv')
-        else:
-            self.centroid = vso.phot.measure_photometry(self.image_, draft, self.settings_.aperture)['auid', 'sky_centroid']
-            self.centroid.rename_column('sky_centroid', 'radec2000')
+        # if layout.centroid_file_path.exists():
+        #     self.centroid = QTable.read(layout.centroid_file_path, format='ascii.ecsv')
+        # else:
+        self.centroid = vso.phot.measure_photometry(self.image_, draft, self.settings_.aperture)['auid', 'sky_centroid']
+        self.centroid.rename_column('sky_centroid', 'radec2000')
 
         self.wgt_enable = [widgets.Checkbox(value=not self.settings_.is_star_enabled(star['auid']),
                                             description=star['auid'],
