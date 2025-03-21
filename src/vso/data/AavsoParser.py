@@ -185,9 +185,9 @@ class AavsoParser:
         sequence = dict(
             auid = [star['auid'] for star, _ in bands],
             band = [band['band'] for _, band in bands],
-            mag = Column([(float(band['mag']), float(band['error'])) for _, band in bands],
+            M = Column([(float(band['mag']), float(band['error'])) for _, band in bands],
                         unit=u.mag,
-                        dtype=[('val', 'f4'), ('err', 'f4')])
+                        dtype=[('mag', 'f4'), ('err', 'f4')])
         )
 
         return QTable(centroids), QTable(sequence, meta=extract_metadata(chart))

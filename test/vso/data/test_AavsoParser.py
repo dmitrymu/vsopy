@@ -174,8 +174,8 @@ class AavsoParserTest(unittest.TestCase):
         self.assertEqual(centroids['auid'][2], '000-BMS-017')
 
         self.assertEqual(len(sequence), 29)
-        self.assertEqual(sequence.colnames, ['auid', 'band', 'mag'])
-        assert_array_equal(sequence['mag']['val'][7:10],
+        self.assertEqual(sequence.colnames, ['auid', 'band', 'M'])
+        assert_array_equal(sequence['M']['mag'][7:10],
                            np.array([8.685, 9.843, 7.488], dtype=np.float32) * u.mag)
 
         self.assertDictEqual(sequence.meta,
