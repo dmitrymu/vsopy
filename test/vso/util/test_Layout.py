@@ -90,6 +90,8 @@ class SessionLayoutTest(unittest.TestCase):
                          str(Path(root) / Path(tag) / Path(target)))
         self.assertEqual(str(l.solved_dir), str(l.root_dir / 'solved'))
         self.assertEqual(str(l.blacklist_file_path), str(l.root_dir / 'blacklist.json'))
+        self.assertEqual(str(l.batches_file_path), str(l.root_dir / 'batches.ecsv'))
+        self.assertEqual(str(l.batch_images_file_path), str(l.root_dir / 'batch_images.ecsv'))
         self.assertEqual(str(l.settings_file_path), str(l.root_dir / 'settings.json'))
         self.assertEqual(str(l.centroid_file_path), str(l.root_dir / 'centroids.ecsv'))
         self.assertEqual(str(l.chart_file_path), str(l.root_dir / 'chart.ecsv'))

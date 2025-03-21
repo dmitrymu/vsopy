@@ -76,6 +76,14 @@ class SessionLayout(LayoutBase):
         return self.root_dir / 'blacklist.json'
 
     @property
+    def batches_file_path(self):
+        return self.root_dir / 'batches.ecsv'
+
+    @property
+    def batch_images_file_path(self):
+        return self.root_dir / 'batch_images.ecsv'
+
+    @property
     def chart_file_path(self):
         return self.root_dir / 'chart.ecsv'
 

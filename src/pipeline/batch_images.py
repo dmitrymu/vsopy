@@ -28,10 +28,10 @@ def main():
     batches, batch_images = util.batch_session_images(session_layout.images_file_path)
     batches.meta.update({'object': args.object})
 
-    batches.write(session_layout.root_dir / 'batches.ecsv',
+    batches.write(session_layout.batches_file_path,
                   format='ascii.ecsv', overwrite=args.overwrite)
 
-    batch_images.write(session_layout.root_dir / 'batch_images.ecsv',
+    batch_images.write(session_layout.batch_images_file_path,
                        format='ascii.ecsv', overwrite=args.overwrite)
 
     return 0
