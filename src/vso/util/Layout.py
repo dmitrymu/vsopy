@@ -96,6 +96,10 @@ class SessionLayout(LayoutBase):
         return self.root_dir / 'settings.json'
 
     @property
+    def measured_file_path(self):
+        return self.root_dir / 'measured.ecsv'
+
+    @property
     def photometry_file_path(self):
         return self.root_dir / 'photometry.ecsv'
 

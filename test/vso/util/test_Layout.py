@@ -95,6 +95,7 @@ class SessionLayoutTest(unittest.TestCase):
         self.assertEqual(str(l.chart_file_path), str(l.root_dir / 'chart.ecsv'))
         self.assertEqual(str(l.sequence_file_path), str(l.root_dir / 'sequence.ecsv'))
         self.assertEqual(str(l.images_file_path), str(l.root_dir / 'images.ecsv'))
+        self.assertEqual(str(l.measured_file_path), str(l.root_dir / 'measured.ecsv'))
         self.assertEqual(str(l.photometry_file_path), str(l.root_dir / 'photometry.ecsv'))
 
 if __name__ == '__main__':
