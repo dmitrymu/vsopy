@@ -8,6 +8,10 @@ class BatchDataProvider:
         self.measured_ = QTable.read(session.measured_file_path)
         self.sequence_ = QTable.read(session.sequence_file_path)
 
+    @property
+    def target_auid(self):
+        return self.sequence_.meta['auid'] if 'auid' in self.sequence_.meta else None
+
     def instr(self, band):
         return f"instr {band}"
 
@@ -22,6 +26,11 @@ class BatchDataProvider:
     def sequence_band_pair(self, band_pair):
         bandA, bandB = band_pair
         return join(self.sequence_band(bandA), self.sequence_band(bandB), 'auid')
+
+    def check_band_pair(self, band_pair, auid):
+        bandA, bandB = band_pair
+        s = join(self.sequence_band(bandA), self.sequence_band(bandB), 'auid')
+        return s[s['auid'] == auid][bandA, bandB]
 
     def batch_band(self, band):
         fltr = self.images_[self.images_['filter'] == band]['image_id',]
