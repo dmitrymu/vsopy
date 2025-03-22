@@ -84,14 +84,11 @@ def batch_create_simple_transform(provider, bands):
         'xfm': Column(xfm, dtype = xfm_dtype)
     })
 
-def batch_diff_photometry(provider, bands, comparison_auid, target_auid=None):
-
-
-    xfm_table = batch_create_simple_transform(provider, bands)
+def batch_apply_simple_transform(provider, xfm, bands, comparison_auid, target_auid=None):
 
     comp = provider.batch_comp_star(bands, comparison_auid)
     targ = provider.batch_target_star(bands, target_auid if target_auid is not None else provider.target_auid)
-    xfm_input = join(join(comp, targ, 'batch_id'), xfm_table, 'batch_id')
+    xfm_input = join(join(comp, targ, 'batch_id'), xfm, 'batch_id')
     transformed = [apply_simple_transform(row['xfm'], row[bands[0]].value, row[bands[1]].value,
                             row[provider.instr(bands[0])].value, row[provider.instr(bands[1])].value,
                             row[provider.targ(bands[0])].value, row[provider.targ(bands[1])].value
@@ -102,3 +99,8 @@ def batch_diff_photometry(provider, bands, comparison_auid, target_auid=None):
         bands[0]: Column(list(a), dtype = MagErrDtype, unit=u.mag),
         bands[1]: Column(list(b), dtype = MagErrDtype, unit=u.mag)
         })
+
+def batch_diff_photometry(provider, bands, comparison_auid, target_auid=None):
+
+    xfm = batch_create_simple_transform(provider, bands)
+    return batch_apply_simple_transform(provider, xfm, bands, comparison_auid, target_auid)
