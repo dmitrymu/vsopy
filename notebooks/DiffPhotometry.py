@@ -76,10 +76,10 @@ class PreviewDiffPhotometry:
             )
         self.wgt_band_.observe(self.band_updated, 'value')
 
-        auids = list(set(self.provider_.sequence_['auid']))
+        self.auids_ = [] #list(set(self.provider_.sequence_['auid']))
         self.wgt_comp_ = widgets.Select(
-            options = auids,
-            rows=len(auids),
+            options = self.auids_,
+            rows=len(self.auids_),
             description = 'Comp star',
             layout=widgets.Layout(width='auto')
         )
@@ -88,8 +88,8 @@ class PreviewDiffPhotometry:
 
         self.table_check_ = None
         self.wgt_check_ = widgets.Select(
-            options = auids,
-            rows=len(auids),
+            options = self.auids_,
+            rows=len(self.auids_),
             description = 'Check star',
             layout=widgets.Layout(width='auto')
         )
@@ -107,6 +107,7 @@ class PreviewDiffPhotometry:
         self.wgt_check_.options=[
             (self.format_label(row, band), n)
             for row, n in zip(self.table_check_, itertools.count())]
+        self.wgt_check_.value = 0
         self.wgt_check_.rows=len(self.table_check_)
 
     def format_label(self, row, band):
@@ -115,12 +116,14 @@ class PreviewDiffPhotometry:
 
     def band_updated(self, *args):
         band = self.bands_[self.wgt_band_.value]
+        self.auids_ = self.provider_.sequence_band_pair(band)['auid']
         self.table_comp_ = self.table_target_err(band)
         self.table_comp_.sort(band[0])
         self.wgt_comp_.options=[
             (self.format_label(row, band), n)
             for row, n in zip(self.table_comp_, itertools.count())]
         self.wgt_comp_.rows=len(self.table_comp_)
+        self.wgt_comp_.value = 0
         self.comp_updated()
 
     def target_err(self, data, band):
@@ -136,10 +139,9 @@ class PreviewDiffPhotometry:
             return np.nan, np.nan, 0
 
     def table_target_err(self, band):
-        auids = list(set(self.provider_.sequence_['auid']))
-        err = [self.band_target_err(band, comp) for comp in auids]
+        err = [self.band_target_err(band, comp) for comp in self.auids_]
         zipped = [(comp, e[0], e[1], e[2])
-                  for comp, e in zip(auids, err)
+                  for comp, e in zip(self.auids_, err)
                   if not np.isnan(e[0])]
         return QTable({
             'auid': [z[0] for z in zipped],
@@ -166,10 +168,10 @@ class PreviewDiffPhotometry:
             return np.nan, np.nan, 0
 
     def table_check_err(self, band, comp):
-        auids = list(set(self.provider_.sequence_['auid']))
+        auids = self.auids_.value.tolist()
+        auids.remove(comp)
         err = [self.band_check_err(band, comp, check)
-               for check in auids
-               if check != comp]
+               for check in auids]
         zipped = [(check, e[0], e[1], e[2])
                   for check, e in zip(auids, err)
                   if not np.isnan(e[0])]
