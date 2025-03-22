@@ -69,6 +69,7 @@ class PreviewDiffPhotometry:
         self.provider_ = vso.phot.BatchDataProvider(layout)
         self.settings_ = settings
         self.bands_ = vso.util.band_pairs(settings.bands)
+        self.xfm_ = None
 
         self.wgt_band_ = widgets.Dropdown(
             options=[(f"{b[0]} {b[1]}", n) for b, n in zip(self.bands_, itertools.count())],
@@ -76,7 +77,7 @@ class PreviewDiffPhotometry:
             )
         self.wgt_band_.observe(self.band_updated, 'value')
 
-        self.auids_ = [] #list(set(self.provider_.sequence_['auid']))
+        self.auids_ = []
         self.wgt_comp_ = widgets.Select(
             options = self.auids_,
             rows=len(self.auids_),
@@ -94,6 +95,7 @@ class PreviewDiffPhotometry:
             layout=widgets.Layout(width='auto')
         )
         self.band_updated()
+        self.wgt_time_ = widgets.IntRangeSlider(min=0, max=len(self.provider_.batches_)-1)
 
     @property
     def settings(self):
@@ -116,6 +118,7 @@ class PreviewDiffPhotometry:
 
     def band_updated(self, *args):
         band = self.bands_[self.wgt_band_.value]
+        self.xfm_ = vso.phot.batch_create_simple_transform(self.provider_, band)
         self.auids_ = self.provider_.sequence_band_pair(band)['auid']
         self.table_comp_ = self.table_target_err(band)
         self.table_comp_.sort(band[0])
@@ -130,7 +133,7 @@ class PreviewDiffPhotometry:
         return np.sqrt(np.sum(data[band]['err']**2) / len(data))
 
     def band_target_err(self, band, comp):
-        dph = vso.phot.batch_diff_photometry(self.provider_, band, comp, self.provider_.target_auid)
+        dph = vso.phot.batch_apply_simple_transform(self.provider_, self.xfm_, band, comp, self.provider_.target_auid)
         if len(dph) > 0:
             err_a = self.target_err(dph, band[0])
             err_b = self.target_err(dph, band[1])
@@ -158,7 +161,7 @@ class PreviewDiffPhotometry:
         return np.sqrt(np.sum((data - goal)**2) / len(data))
 
     def band_check_err(self, band, comp, check):
-        dph = vso.phot.batch_diff_photometry(self.provider_, band, comp, check)
+        dph = vso.phot.batch_apply_simple_transform(self.provider_, self.xfm_, band, comp, check)
         check_data = self.provider_.check_band_pair(band, check)
         if len(dph) > 0:
             err_a = self.check_err(dph[band[0]]['mag'], check_data[band[0]]['mag'])
@@ -183,42 +186,17 @@ class PreviewDiffPhotometry:
         })
 
 
-    def plot(self, b=0, cm=0, ck=0):
+    def plot(self, b=0, cm=0, ck=0, tr=(0,1)):
         band = self.bands_[b]
         comp = self.table_comp_[cm]['auid']
         check = self.table_check_[ck]['auid']
         check_data = self.provider_.check_band_pair(band, check)
+
         self.settings_.set_comp(band, comp)
         self.settings_.set_check(band, check)
-        dph = join(vso.phot.batch_diff_photometry(self.provider_, band, comp), self.provider_.batches_, 'batch_id')
-        dph_check = vso.phot.batch_diff_photometry(self.provider_, band, comp, check)
-
-        # if self.save_tables_:
-        #     dph.write(self.session_path / f'Result_{band[0]}_{band[1]}.ecsv', format='ascii.ecsv', overwrite=True)
-        #     QTable([
-        #     Column([x[0] for x in td],
-        #            name='id'),
-        #     Column([x[1]['auid'][0] for x in td],
-        #            name='target'),
-        #     Column([x[2]['auid'][0] for x in td],
-        #            name='comp'),
-        #     Column([None if x[3] is None else x[3]['auid'][0]  for x in td],
-        #            name='check'),
-        #     Column([x[5] for x in td],
-        #            name='airmass'),
-        #     Column([x[4].Ta for x in td],
-        #            name='Ta'),
-        #     Column([x[4].Ta_err for x in td],
-        #            name='Ta_err'),
-        #     Column([x[4].Tb for x in td],
-        #            name='Tb'),
-        #     Column([x[4].Tb_err for x in td],
-        #            name='Tb_err'),
-        #     Column([x[4].Tab for x in td],
-        #            name='Tab'),
-        #     Column([x[4].Tab_err for x in td],
-        #            name='Tab_err'),
-        #     ]).write(self.session_path / f'Tr_{band[0]}_{band[1]}.ecsv', format='ascii.ecsv', overwrite=True)
+        batches = self.provider_.batches_[tr[0]:tr[1]+1]
+        dph = join(vso.phot.batch_apply_simple_transform(self.provider_, self.xfm_, band, comp), batches, 'batch_id')
+        dph_check = join(vso.phot.batch_apply_simple_transform(self.provider_, self.xfm_, band, comp, check), batches, 'batch_id')
 
         def plot_band(ax, data, band):
             ax.errorbar(data['time'].jd, data[f'{band}']['mag'],
@@ -260,41 +238,6 @@ class PreviewDiffPhotometry:
                  '+', label=f'Target {band[1]}', color=BAND_COLOR[band[1]])
         ax4.set_ylabel('Check star error')
 
-        # ax5 = fig.add_subplot(gs[3, 0])
-        # ax5.plot(dph['time'].jd, (dph[f'peak {band[0]}']),
-        #          '.', label=f'Target {band[0]}', color=BAND_COLOR[band[0]])
-        # ax5.plot(dph['time'].jd, (dph[f'peak {band[1]}']),
-        #          '.', label=f'Target {band[1]}', color=BAND_COLOR[band[1]])
-        # ax5.set_xlabel('JD')
-        # ax5.set_ylabel('Target peak')
-
-        # xfm = list([xfm for _, _, _, _, xfm, _ in td])
-        # am = list([airmass for _, _, _, _, _, airmass in td])
-        # ax6 = fig.add_subplot(gs[4, 0])
-        # ax6.errorbar(dph['time'].jd, [t.Ta for t in xfm],
-        #             yerr=[t.Ta_err/2 for t in xfm], fmt='o',
-        #             label="Ta", color=BAND_COLOR[band[0]])
-        # ax6.errorbar(dph['time'].jd, [t.Tb for t in xfm],
-        #             yerr=[t.Tb_err/2 for t in xfm], fmt='o',
-        #             label="Tb", color=BAND_COLOR[band[1]])
-        # ax6.set_xlabel('JD')
-        # ax6.set_ylabel('Tbv')
-
-        # ax7 = fig.add_subplot(gs[5, 0])
-        # ax7.plot(am, [t.Ta for t in xfm],
-        #          '.', color=BAND_COLOR[band[0]])
-        # ax7.plot(am, [t.Tb for t in xfm],
-        #          '.', color=BAND_COLOR[band[1]])
-        # ax7.set_xlabel('Air mass')
-        # ax7.set_ylabel('Tx')
-
-        # ax8 = fig.add_subplot(gs[6, 0])
-        # ax8.plot(dph['time'], dph[f'{band[0]}']['mag'] - dph[f'{band[0]}_1']['mag'],
-        #          '.', color=BAND_COLOR[band[0]])
-        # ax8.set_xlabel('JD')
-        # ax8.set_ylabel('delta')
-
-
         plt.show()
 
 
@@ -302,5 +245,6 @@ class PreviewDiffPhotometry:
         widgets.interact(self.plot,
                         b=self.wgt_band_,
                         cm=self.wgt_comp_,
-                        ck=self.wgt_check_
+                        ck=self.wgt_check_,
+                        tr=self.wgt_time_
         )
