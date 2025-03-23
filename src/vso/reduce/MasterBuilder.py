@@ -28,15 +28,19 @@ class MasterBuilder:
         self.whitelist_ = set([e.value for e in FrameType])
 
     def process_image(self, path, tmp_dir):
+
         image = CCDData.read(path, unit='adu')
         camera_name = image.header['instrume']
         camera = CameraRegistry.get(camera_name)
-        image.divide(camera.adu_scale)
         image_gain = image.header['gain']
         e_gain = camera.gain_to_e(image_gain)
         e_noise = camera.read_noise(image_gain)
+
+        scaled = image.divide(camera.adu_scale)
+        scaled.meta = image.meta
+
         reduced = ccdp.gain_correct(
-            ccdp.create_deviation(image,
+            ccdp.create_deviation(scaled,
                                   e_gain,
                                   e_noise),
             e_gain)
@@ -66,7 +70,7 @@ class MasterBuilder:
 
     def create_master(self, frame_type, num_frames, keys, temp, tmp_dir):
         deviated = ccdp.ImageFileCollection(tmp_dir)
-        mem_limit = round_Mb((psutil.virtual_memory().available*2)//3)
+        mem_limit = round_Mb((psutil.virtual_memory().available*4)//5)
         print(f"using {mem_limit/1024/1024} MB of RAM")
         master = ccdp.combine(deviated.files_filtered(include_path=True),
                               method='average',

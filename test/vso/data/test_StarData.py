@@ -70,6 +70,17 @@ class StarDataTest(unittest.TestCase):
     def test_get_star_chart(self, parse_std_fields, mock_get_std_field_chart, mock_write):
         parse_std_fields.return_value = STD_FIELDS
         mock_get_std_field_chart.return_value = STAR_CHART
-        sd = StarData('/home/test')
+        sd = StarData('/home/test', normalize_charts=False)
         chart = sd.get_chart('SA00')
         self.assertEqual(len(chart), 1)
+
+    @patch(f"vso.data.PersistentTable.QTable.write")
+    @patch.object(AavsoApi, 'get_std_field_chart')
+    @patch.object(AavsoParser, 'parse_std_fields')
+    def test_get_norm_star_chart(self, parse_std_fields, mock_get_std_field_chart, mock_write):
+        parse_std_fields.return_value = STD_FIELDS
+        mock_get_std_field_chart.return_value = STAR_CHART
+        sd = StarData('/home/test')
+        centroids, sequence = sd.get_chart('SA00')
+        self.assertEqual(len(centroids), 1)
+        self.assertEqual(len(sequence), 4)

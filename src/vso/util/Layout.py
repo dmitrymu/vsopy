@@ -76,15 +76,36 @@ class SessionLayout(LayoutBase):
         return self.root_dir / 'blacklist.json'
 
     @property
+    def batches_file_path(self):
+        return self.root_dir / 'batches.ecsv'
+
+    @property
+    def batch_images_file_path(self):
+        return self.root_dir / 'batch_images.ecsv'
+
+    @property
     def chart_file_path(self):
         return self.root_dir / 'chart.ecsv'
 
     @property
     def centroid_file_path(self):
         return self.root_dir / 'centroids.ecsv'
+
+    @property
+    def sequence_file_path(self):
+        return self.root_dir / 'sequence.ecsv'
+
+    @property
+    def images_file_path(self):
+        return self.root_dir / 'images.ecsv'
+
     @property
     def settings_file_path(self):
         return self.root_dir / 'settings.json'
+
+    @property
+    def measured_file_path(self):
+        return self.root_dir / 'measured.ecsv'
 
     @property
     def photometry_file_path(self):
