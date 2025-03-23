@@ -81,8 +81,7 @@ class PreviewDiffPhotometry:
         self.wgt_comp_ = widgets.Select(
             options = self.auids_,
             rows=len(self.auids_),
-            description = 'Comp star',
-            layout=widgets.Layout(width='auto')
+            layout=widgets.Layout(width='95%')
         )
         self.table_comp_ = None
         self.wgt_comp_.observe(self.comp_updated, 'value')
@@ -91,8 +90,7 @@ class PreviewDiffPhotometry:
         self.wgt_check_ = widgets.Select(
             options = self.auids_,
             rows=len(self.auids_),
-            description = 'Check star',
-            layout=widgets.Layout(width='auto')
+            layout=widgets.Layout(width='95%')
         )
         self.band_updated()
 
@@ -102,10 +100,14 @@ class PreviewDiffPhotometry:
                                                 description = 'Time range',
                                                 readout=False,
                                                 layout=widgets.Layout(width='50%'))
-        self.wgt_range_ = widgets.Text("time", layout=widgets.Layout(width='50%'))
-        # self.wgt_time_.observe(self.time_updated, 'value')
-        # self.wgt_box_ = widgets.VBox([self.wgt_band_, self.wgt_comp_, self.wgt_check_,
-        #                               widgets.HBox([self.wgt_time_, self.wgt_range_])])
+        self.wgt_range_ = widgets.Label("time", layout=widgets.Layout(width='50%'))
+        self.wgt_time_.observe(self.time_updated, 'value')
+        self.time_updated()
+        self.wgt_ui_ = widgets.VBox([self.wgt_band_,
+                                      widgets.HBox([widgets.VBox([widgets.Label("Comp star"), self.wgt_comp_], layout=widgets.Layout(width='50%')),
+                                                    widgets.VBox([widgets.Label("Check star"), self.wgt_check_], layout=widgets.Layout(width='50%'))],
+                                                    layout=widgets.Layout(width='100%')),
+                                      widgets.HBox([self.wgt_time_, self.wgt_range_])])
 
     @property
     def settings(self):
@@ -113,7 +115,7 @@ class PreviewDiffPhotometry:
 
     def time_updated(self, *args):
         imin, imax = self.wgt_time_.value
-        self.wgt_range_.value = "???????" #str(self.provider_.batches_['time'][imin]) + ' - ' + str(self.provider_.batches_['time'][imax])
+        self.wgt_range_.value = f"UTC {self.provider_.batches_['time'][imin]} - {self.provider_.batches_['time'][imax]}"
 
     def comp_updated(self, *args):
         band = self.bands_[self.wgt_band_.value]
@@ -257,9 +259,10 @@ class PreviewDiffPhotometry:
 
 
     def run(self):
-        widgets.interact(self.plot,
+        w = widgets.interactive_output(self.plot, dict(
                         b=self.wgt_band_,
                         cm=self.wgt_comp_,
                         ck=self.wgt_check_,
-                        tr=self.wgt_time_
+                        tr=self.wgt_time_)
         )
+        display(self.wgt_ui_, w)
