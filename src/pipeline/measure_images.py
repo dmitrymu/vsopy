@@ -13,7 +13,7 @@ from vso import util
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description='Extract instrumental magnitudes from images for the session'
+        description='Extract instrumental magnitudes from session images'
     )
     parser.add_argument('-O', '--object', type=str, required=True, help='Object name')
     parser.add_argument('-t', '--tag', type=str, required=True, help='Tag (date)')

@@ -11,6 +11,29 @@ MagErrDtype = [('mag', 'f4'), ('err', 'f4')]
 SimpleTransform = namedtuple('SimpleTransform', ['Ta', 'Tb', 'Tab'])
 
 def create_simple_transform(A, B, a, b):
+    """Create transform from star photometry for two images
+
+    Given an ensemble of stars with both standard (A, B) and instrumental
+    (a,b) magnitudes known for two bands, we fit two linear regressions:
+
+    (1)  a - b = T_ab * (A - B) + C_ab
+    (2)  A-a = T_a * (A - B) + C_a
+    (3)  B-b = T_b * (A - B) + C_b
+
+    T_ab determines transformation of instrumental color index to standard
+    color index.  T_a corrects transformation from instrumental to standard
+    magnitude with respect to color index. See comment on
+    SimpleTransform.__call__ for details.
+
+    Args:
+        batch (table-like): instrumental and standard magnitudes for image pair
+        band_a (str): band (filter) of the first image
+        band_b (str): band (filter) of the second image
+
+    Returns:
+        SimpleTransform: transform to calculate target standard magnitude
+        given comparison star.
+    """
     AB = A - B
     ab = a - b
     Aa =A - a
@@ -29,6 +52,26 @@ def create_simple_transform(A, B, a, b):
     return result
 
 def apply_simple_transform(xfm, A_c, B_c, a_c, b_c, a_t, b_t):
+    """Calculate standard magnitude of the target using its instrumental magnitude, comparison star, and transform.
+
+    For color bands A and B defined on transform creation, the following magnitudes are known:
+    * a_t and b_t - instrumental for target star;
+    * a_c and b_c - instrumental for comparison star;
+    * A_c and B_c - standard for comparison star.
+
+    Standard magnitudes of the target A_t and B_t are calculated as follows:
+
+    (1) C_t = A_t - B_t = (A_c - B_c) + T_ab * ((a_t-b_t) - (a_c-b_c))
+    (2) A_t = a_t + (A_c-a_c) + T_b * (C_t - (A_c - B_c))
+    (3) B_t = A_t - C_t
+
+    All magnitudes and transform coefficients have their uncertainties that should
+    be propagated through the equations above.
+
+    Args:
+        target (dict-like): target star (instrumental)
+        comp (dict_like): comparison star (instrumental and standard)
+    """
     def transform(T_a, T_ab, A_c, B_c, a_c, b_c, a_t, b_t):
         Ta, Ta_err = T_a
         Tab, Tab_err = T_ab
@@ -101,6 +144,13 @@ def batch_apply_simple_transform(provider, xfm, bands, comparison_auid, target_a
         })
 
 def batch_diff_photometry(provider, bands, comparison_auid, target_auid=None):
+    """Magnitude transformation for differential photometry.
+
+    It uses simplified approach which ignores second order extinction.
+    See Gary B.L., CCD Transformation Equations for Use with Single-Image Photometry.
+    This transform must be calculated for each pair of images separately and applied
+    to the instrumental magnitudes extracted from those images.
+    """
 
     xfm = batch_create_simple_transform(provider, bands)
     return batch_apply_simple_transform(provider, xfm, bands, comparison_auid, target_auid)
