@@ -95,11 +95,25 @@ class PreviewDiffPhotometry:
             layout=widgets.Layout(width='auto')
         )
         self.band_updated()
-        self.wgt_time_ = widgets.IntRangeSlider(min=0, max=len(self.provider_.batches_)-1)
+
+        imin = 0
+        imax = len(self.provider_.batches_)-1
+        self.wgt_time_ = widgets.IntRangeSlider(min=imin, max=imax, value=[imin, imax],
+                                                description = 'Time range',
+                                                readout=False,
+                                                layout=widgets.Layout(width='50%'))
+        self.wgt_range_ = widgets.Text("time", layout=widgets.Layout(width='50%'))
+        # self.wgt_time_.observe(self.time_updated, 'value')
+        # self.wgt_box_ = widgets.VBox([self.wgt_band_, self.wgt_comp_, self.wgt_check_,
+        #                               widgets.HBox([self.wgt_time_, self.wgt_range_])])
 
     @property
     def settings(self):
         return self.settings_
+
+    def time_updated(self, *args):
+        imin, imax = self.wgt_time_.value
+        self.wgt_range_.value = "???????" #str(self.provider_.batches_['time'][imin]) + ' - ' + str(self.provider_.batches_['time'][imax])
 
     def comp_updated(self, *args):
         band = self.bands_[self.wgt_band_.value]
@@ -205,7 +219,7 @@ class PreviewDiffPhotometry:
 
         star = self.provider_.sequence_.meta.get('star', '???')
 
-        fig = plt.figure(figsize=(10.24, 30.0))
+        fig = plt.figure(figsize=(10.24, 10.24))
         gs = fig.add_gridspec(3, 1)
         #ax = plt.subplot()
         #flt = dph[f'check {band[0]}']['err'] < 1 * u.mag
@@ -238,6 +252,7 @@ class PreviewDiffPhotometry:
                  '+', label=f'Target {band[1]}', color=BAND_COLOR[band[1]])
         ax4.set_ylabel('Check star error')
 
+        plt.tight_layout()
         plt.show()
 
 
