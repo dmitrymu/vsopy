@@ -37,6 +37,38 @@ class Aperture:
         return Aperture(self.r_, self.r_in_, self.r_out_,
                         u.pixel, u.pixel_scale(scale))
 
+class PhotometrySettings:
+    def __init__(self, data):
+        self.data_ = data
+
+    @property
+    def comp(self):
+        return self.data_['comp']
+
+    @property
+    def check(self):
+        return  self.data_['check'] if 'check' in self.data_ else None
+
+    @property
+    def start(self):
+        return self.data_['start']
+
+    @property
+    def finish(self):
+        return self.data_['finish']
+
+    def set_comp(self, value):
+        self.data_.setdefault("comp", value)
+
+    def set_check(self, value):
+        self.data_.setdefault("check", value)
+
+    def set_start(self, value):
+        self.data_["start"] = value
+
+    def set_finish(self, value):
+        self.data_["finish"] = value
+
 class Settings:
     def __init__(self, path) -> None:
         self.data_ = {}
@@ -57,6 +89,10 @@ class Settings:
     @property
     def bands(self):
         return [] if 'bands' not in self.data_ else self.data_['bands']
+
+    def photometry(self, band):
+        label = f"{band[0]}{band[1]}"
+        return PhotometrySettings(self.data_.setdefault("diff_photometry", {}).setdefault(label, {}))
 
     def get_comp(self, band):
         band_settings = self.data_["diff_photometry"][f"{band[0]}{band[1]}"]

@@ -116,6 +116,9 @@ class PreviewDiffPhotometry:
     def time_updated(self, *args):
         imin, imax = self.wgt_time_.value
         self.wgt_range_.value = f"UTC {self.provider_.batches_['time'][imin]} - {self.provider_.batches_['time'][imax]}"
+        band = self.bands_[self.wgt_band_.value]
+        self.settings_.photometry(band).set_start(self.provider_.batches_['time'][imin].jd)
+        self.settings_.photometry(band).set_finish(self.provider_.batches_['time'][imax].jd)
 
     def comp_updated(self, *args):
         band = self.bands_[self.wgt_band_.value]
@@ -208,8 +211,10 @@ class PreviewDiffPhotometry:
         check = self.table_check_[ck]['auid']
         check_data = self.provider_.check_band_pair(band, check)
 
-        self.settings_.set_comp(band, comp)
-        self.settings_.set_check(band, check)
+        self.settings_.photometry(band).set_comp(comp)
+        self.settings_.photometry(band).set_check(check)
+        self.settings_.photometry(band).set_start(self.provider_.batches_['time'][tr[0]].jd)
+        self.settings_.photometry(band).set_finish(self.provider_.batches_['time'][tr[1]].jd)
         batches = self.provider_.batches_[tr[0]:tr[1]+1]
         dph = join(vso.phot.batch_apply_simple_transform(self.provider_, self.xfm_, band, comp), batches, 'batch_id')
         dph_check = join(vso.phot.batch_apply_simple_transform(self.provider_, self.xfm_, band, comp, check), batches, 'batch_id')

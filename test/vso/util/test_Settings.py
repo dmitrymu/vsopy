@@ -88,6 +88,11 @@ class SettingsTest(unittest.TestCase):
 
         s.enable_star('star1') # assert no exception
 
+    def test_photometry_settings(self):
+        s = Settings(None)
+        s.photometry(('X', 'Y')).set_check('check-star-1')
+        self.assertEqual(s.data_["diff_photometry"]["XY"]["check"], 'check-star-1')
+
     @patch('builtins.open', new_callable=mock_open, read_data=DEFAULT_JSON)
     def test_load(self, mock_open):
         SETTINGS_PATH='/home/user/settings.json'
