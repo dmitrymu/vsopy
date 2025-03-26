@@ -1,13 +1,12 @@
 import astropy.units as u
 import numpy as np
-from scipy import stats as sst
-from collections import namedtuple
-from astropy.table import QTable, Column, join
 
-ValErr = namedtuple('ValErr', ['val', 'err'])
-ValErrDtype = [('val', 'f4'), ('err', 'f4')]
-MagErr = namedtuple('ValErr', ['mag', 'err'])
-MagErrDtype = [('mag', 'f4'), ('err', 'f4')]
+from .. import phot
+from ..util import MagErr, ValErr, MagErrDtype, ValErrDtype
+from astropy.table import QTable, Column, join
+from collections import namedtuple
+from scipy import stats as sst
+
 SimpleTransform = namedtuple('SimpleTransform', ['Ta', 'Tb', 'Tab'])
 
 def create_simple_transform(A, B, a, b):
@@ -154,3 +153,4 @@ def batch_diff_photometry(provider, bands, comparison_auid, target_auid=None):
 
     xfm = batch_create_simple_transform(provider, bands)
     return batch_apply_simple_transform(provider, xfm, bands, comparison_auid, target_auid)
+
