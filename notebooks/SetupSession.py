@@ -35,7 +35,8 @@ def confirm_settings(preview, layout):
     prev_settings = {}
     if settings_path.exists():
         prev_settings = Settings(settings_path)
-
+    else:
+        prev_settings = Settings(None)
 
     button = widgets.Button(description='Save settings')
     text_layout = widgets.Layout(width='50%',
@@ -202,6 +203,9 @@ class PreviewPhotometry:
     def __init__(self, preview, layout) -> None:
         if layout.settings_file_path.exists():
             self.settings_ = Settings(layout.settings_file_path)
+        else:
+            self.settings_ = Settings(None)
+            self.settings_.set_aperture(Aperture(5, 10, 15))
 
         camera = vso.data.CameraRegistry.get(preview.image.header['instrume'])
         if camera is not None:
