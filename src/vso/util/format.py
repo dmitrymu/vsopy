@@ -17,6 +17,9 @@ def default_val_err_format(m):
 def default_xfm_val_err_format(m):
     return f"Ta: {m[0][0]:.3f} ± {m[0][1]:.3f}; Tb: {m[1][0]:.3f} ± {m[1][1]:.3f}; Tab: {m[2][0]:.3f} ± {m[2][1]:.3f}"
 
+def default_cxfm_val_err_format(m):
+    return f"Ta: {m[0][0]:.3f} ± {m[0][1]:.3f}; Za: {m[1][0]:.3f} ± {m[1][1]:.3f}; Tb: {m[2][0]:.3f} ± {m[2][1]:.3f}; Zb: {m[3][0]:.3f} ± {m[3][1]:.3f}"
+
 def default_table_format(table):
     set_column_format(table, 'flux', '.0f')
     set_column_format(table, 'snr', '.1f')
@@ -32,4 +35,6 @@ def default_table_format(table):
                 set_column_format(table, name, default_val_err_format)
             elif Counter(column.dtype.names) == Counter(['Ta', 'Tb', 'Tab']):
                 set_column_format(table, name, default_xfm_val_err_format)
+            elif Counter(column.dtype.names) == Counter(['Ta', 'Za', 'Tb', 'Zb']):
+                set_column_format(table, name, default_cxfm_val_err_format)
     return table
