@@ -11,6 +11,9 @@ ccdproc
 photutils
 astroquery
 
+# quad-tree (fast 2d search)
+quads
+
 # Jupyter notebooks and extensions
 ipykernel
 notebook==6.5.7
