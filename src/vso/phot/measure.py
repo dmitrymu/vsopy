@@ -110,6 +110,6 @@ def process_image(path, matcher, solver, centroids, aperture):
         reduced = reduce.calibrate_image(image,
                                         dark=calibration.dark,
                                         flat=calibration.flat)
-        return measure_photometry(reduced, centroids, aperture)
+        return measure_photometry(reduced, centroids(reduced), aperture)
     except Exception:
         return None

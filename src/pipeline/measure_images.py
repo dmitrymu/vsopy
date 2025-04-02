@@ -41,7 +41,7 @@ def measure_image(id, path):
     print(f'measure {path}')
     global CONTEXT
     matcher, solver, centroids, aperture = CONTEXT
-    result = phot.process_image(path, matcher, solver, centroids, aperture)
+    result = phot.process_image(path, matcher, solver, lambda _: centroids, aperture)
     result['image_id'] = id
     return result['image_id', 'auid', 'M', 'flux', 'snr', 'peak']
 
