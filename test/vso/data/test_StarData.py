@@ -3,7 +3,7 @@ import astropy.units as u
 from astropy.table import QTable
 from astropy.coordinates import SkyCoord
 from unittest.mock import patch
-from vso.data import StarData, PersistentTable, AavsoApi, AavsoParser
+from vsopy.data import StarData, PersistentTable, AavsoApi, AavsoParser
 import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(

@@ -22,7 +22,7 @@ import vso.reduce
 import vso.phot
 import vso.plot as vp
 import matplotlib.pyplot as plt
-from vso.util import Aperture, Settings
+from vsopy.util import Aperture, Settings
 
 def use_dark_theme(**kwargs):
     theme = dict(vp.dark_plot_theme)

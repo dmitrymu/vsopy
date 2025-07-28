@@ -6,7 +6,7 @@ import astropy.units as u
 import unittest
 
 from unittest.mock import patch, mock_open
-from vso.util import Aperture, Settings
+from vsopy.util import Aperture, Settings
 
 class ApertureTest(unittest.TestCase):
 

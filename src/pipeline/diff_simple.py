@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(
 import numpy as np
 import argparse
 import json
-from vso import phot, data, util
+from vsopy import phot, data, util
 from pathlib import Path
 from astropy.table import QTable
 from collections import namedtuple
