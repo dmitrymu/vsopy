@@ -2,7 +2,7 @@ pytest
 pytest-cov
 psutil
 
-vsopy @git+https://github.com/dmitrymu/vsopy-pkg@init
+vsopy @git+https://github.com/dmitrymu/vsopy-pkg@main
 
 # Jupyter notebooks and extensions
 ipykernel
