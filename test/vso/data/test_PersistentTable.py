@@ -1,4 +1,4 @@
-from vso.data import PersistentTable
+from vsopy.data import PersistentTable
 from unittest.mock import patch
 from astropy.table import QTable
 import numpy as np

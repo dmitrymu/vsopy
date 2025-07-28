@@ -7,9 +7,9 @@ import sys
 import argparse
 import concurrent.futures as cf
 from astropy.table import QTable, vstack
-from vso import phot
-from vso import reduce
-from vso import util
+from vsopy import phot
+from vsopy import reduce
+from vsopy import util
 
 def parse_args():
     parser = argparse.ArgumentParser(

@@ -6,7 +6,7 @@ import unittest
 
 import astropy.units as u
 import numpy as np
-from vso.mock import MockImageBuilder, MockStar
+from vsopy.mock import MockImageBuilder, MockStar
 
 class MockImageBuilderTest(unittest.TestCase):
 

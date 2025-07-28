@@ -9,9 +9,9 @@ import numpy as np
 
 from astropy.coordinates import SkyCoord
 from astropy.table import QTable
-from vso.mock import MockImageBuilder, MockStar
-from vso.phot import measure_photometry
-from vso.util import Aperture
+from vsopy.mock import MockImageBuilder, MockStar
+from vsopy.phot import measure_photometry
+from vsopy.util import Aperture
 
 class MeasurePhotometryTest(unittest.TestCase):
 

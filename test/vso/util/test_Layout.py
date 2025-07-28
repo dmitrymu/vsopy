@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 import unittest
 from unittest.mock import patch
 from pathlib import Path
-from vso.util import LayoutBase, ImageLayout, Session, WorkLayout, SessionLayout
+from vsopy.util import LayoutBase, ImageLayout, Session, WorkLayout, SessionLayout
 
 class LayoutBaseTest(unittest.TestCase):
 

@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 import io
 import unittest
 from unittest.mock import patch
-from vso.data import AavsoApi
+from vsopy.data import AavsoApi
 
 def mock_download_success(uri, **kwargs):
     return uri

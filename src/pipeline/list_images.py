@@ -4,7 +4,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(
     os.path.dirname(__file__), '..')))
 
 import argparse
-from vso import util
+from vsopy import util
 
 def parse_args():
     parser = argparse.ArgumentParser(

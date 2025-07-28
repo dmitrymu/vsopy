@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 import astropy.units as u
 import unittest
 import numpy as np
-from vso.data import AavsoParser
+from vsopy.data import AavsoParser
 from astropy.coordinates import SkyCoord, Angle
 from numpy.testing import assert_array_equal
 

@@ -2,14 +2,7 @@ pytest
 pytest-cov
 psutil
 
-# speed up NumPy
-bottleneck
-
-# Astropy and associates
-astropy[recommended]
-ccdproc
-photutils
-astroquery
+vsopy @git+https://github.com/dmitrymu/vsopy-pkg@init
 
 # Jupyter notebooks and extensions
 ipykernel

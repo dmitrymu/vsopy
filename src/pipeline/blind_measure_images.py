@@ -13,9 +13,9 @@ from astropy.nddata import CCDData
 from astropy.table import QTable, Column, join, vstack
 from astropy.stats import sigma_clipped_stats
 from photutils.detection import DAOStarFinder
-from vso import phot
-from vso import reduce
-from vso import util
+from vsopy import phot
+from vsopy import reduce
+from vsopy import util
 
 def parse_args():
     parser = argparse.ArgumentParser(

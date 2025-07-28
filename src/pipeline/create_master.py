@@ -6,8 +6,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(
 
 import argparse
 from pathlib import Path
-from vso.util import WorkLayout
-from vso.reduce import MasterBuilder
+from vsopy.util import WorkLayout
+from vsopy.reduce import MasterBuilder
 
 
 def parse_args():
