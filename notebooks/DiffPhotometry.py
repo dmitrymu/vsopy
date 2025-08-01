@@ -1,12 +1,12 @@
 import ipywidgets as widgets
 import itertools
 from astropy.table import QTable, join
-import vso.phot
+import vsopy.phot
 import matplotlib.pyplot as plt
 from matplotlib import ticker
 import numpy as np
 import json
-import vso.util
+import vsopy.util
 import astropy.units as u
 from IPython.display import display
 
@@ -35,7 +35,7 @@ def confirm_settings(preview, layout):
         # settings, settings_path):
     settings = preview.settings
     settings_path = layout.settings_file_path
-    prev_settings = vso.util.Settings(settings_path)
+    prev_settings = vsopy.util.Settings(settings_path)
 
 
     button = widgets.Button(description='Save settings')
@@ -66,9 +66,9 @@ class PreviewDiffPhotometry:
     def __init__(self, settings, layout, save_tables=False) -> None:
         self.save_tables_ = save_tables
         self.session_path = layout.root_dir
-        self.provider_ = vso.phot.BatchDataProvider(layout)
+        self.provider_ = vsopy.phot.BatchDataProvider(layout)
         self.settings_ = settings
-        self.bands_ = vso.util.band_pairs(settings.bands)
+        self.bands_ = vsopy.util.band_pairs(settings.bands)
         self.xfm_ = None
 
         self.wgt_band_ = widgets.Dropdown(
@@ -137,7 +137,7 @@ class PreviewDiffPhotometry:
 
     def band_updated(self, *args):
         band = self.bands_[self.wgt_band_.value]
-        self.xfm_ = vso.phot.batch_create_simple_transform(self.provider_, band)
+        self.xfm_ = vsopy.phot.batch_create_simple_transform(self.provider_, band)
         self.auids_ = self.provider_.sequence_band_pair(band)['auid']
         self.table_comp_ = self.table_target_err(band)
         self.table_comp_.sort(band[0])
@@ -152,7 +152,7 @@ class PreviewDiffPhotometry:
         return np.sqrt(np.sum(data[band]['err']**2) / len(data))
 
     def band_target_err(self, band, comp):
-        dph = vso.phot.batch_apply_simple_transform(self.provider_, self.xfm_, band, comp, self.provider_.target_auid)
+        dph = vsopy.phot.batch_apply_simple_transform(self.provider_, self.xfm_, band, comp, self.provider_.target_auid)
         if len(dph) > 0:
             err_a = self.target_err(dph, band[0])
             err_b = self.target_err(dph, band[1])
@@ -180,7 +180,7 @@ class PreviewDiffPhotometry:
         return np.sqrt(np.sum((data - goal)**2) / len(data))
 
     def band_check_err(self, band, comp, check):
-        dph = vso.phot.batch_apply_simple_transform(self.provider_, self.xfm_, band, comp, check)
+        dph = vsopy.phot.batch_apply_simple_transform(self.provider_, self.xfm_, band, comp, check)
         check_data = self.provider_.check_band_pair(band, check)
         if len(dph) > 0:
             err_a = self.check_err(dph[band[0]]['mag'], check_data[band[0]]['mag'])
@@ -216,8 +216,8 @@ class PreviewDiffPhotometry:
         self.settings_.photometry(band).set_start(self.provider_.batches_['time'][tr[0]].jd)
         self.settings_.photometry(band).set_finish(self.provider_.batches_['time'][tr[1]].jd)
         batches = self.provider_.batches_[tr[0]:tr[1]+1]
-        dph = join(vso.phot.batch_apply_simple_transform(self.provider_, self.xfm_, band, comp), batches, 'batch_id')
-        dph_check = join(vso.phot.batch_apply_simple_transform(self.provider_, self.xfm_, band, comp, check), batches, 'batch_id')
+        dph = join(vsopy.phot.batch_apply_simple_transform(self.provider_, self.xfm_, band, comp), batches, 'batch_id')
+        dph_check = join(vsopy.phot.batch_apply_simple_transform(self.provider_, self.xfm_, band, comp, check), batches, 'batch_id')
 
         def plot_band(ax, data, band):
             ax.errorbar(data['time'].jd, data[f'{band}']['mag'],
