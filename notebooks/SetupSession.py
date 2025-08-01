@@ -17,10 +17,10 @@ import logging
 from matplotlib.patches import Circle
 from IPython.display import display
 import json
-import vso.data
-import vso.reduce
-import vso.phot
-import vso.plot as vp
+import vsopy.data
+import vsopy.reduce
+import vsopy.phot
+import vsopy.plot as vp
 import matplotlib.pyplot as plt
 from vsopy.util import Aperture, Settings
 
@@ -162,7 +162,7 @@ class ImagePreview:
             display(widgets.Label(f"Blacklisted file {path}"))
             return
         try:
-            self.image_  = vso.reduce.load_and_solve(path, self.solved_dir_)
+            self.image_  = vsopy.reduce.load_and_solve(path, self.solved_dir_)
             self.chart_, self.sequence_ = get_image_stars(self.stardata_, self.image_ )
             wcs = self.image_ .wcs
             interval = MinMaxInterval()
@@ -207,7 +207,7 @@ class PreviewPhotometry:
             self.settings_ = Settings(None)
             self.settings_.set_aperture(Aperture(5, 10, 15))
 
-        camera = vso.data.CameraRegistry.get(preview.image.header['instrume'])
+        camera = vsopy.data.CameraRegistry.get(preview.image.header['instrume'])
         if camera is not None:
             self.image_ = preview.image.divide(camera.adu_scale)
         self.image_.header = preview.image.header
@@ -223,7 +223,7 @@ class PreviewPhotometry:
         # if layout.centroid_file_path.exists():
         #     self.centroid = QTable.read(layout.centroid_file_path, format='ascii.ecsv')
         # else:
-        self.centroid = vso.phot.measure_photometry(self.image_, draft, self.settings_.aperture)['auid', 'sky_centroid']
+        self.centroid = vsopy.phot.measure_photometry(self.image_, draft, self.settings_.aperture)['auid', 'sky_centroid']
         self.centroid.rename_column('sky_centroid', 'radec2000')
 
         self.wgt_enable = [widgets.Checkbox(value=not self.settings_.is_star_enabled(star['auid']),
@@ -257,7 +257,7 @@ class PreviewPhotometry:
 
     def stars_photometry(self, r, r_in=None, r_out=None, tile=60, ncols=6, width=12.80):
         self.settings_.set_aperture(Aperture(r, r_in, r_out))
-        self.ph = vso.phot.measure_photometry(self.image_, self.centroid, self.settings_.aperture)
+        self.ph = vsopy.phot.measure_photometry(self.image_, self.centroid, self.settings_.aperture)
         self.ph.remove_column('radec2000')
         self.ph.rename_column('sky_centroid', 'radec2000')
         nrows = (len(self.ph)+1) // ncols + 1
