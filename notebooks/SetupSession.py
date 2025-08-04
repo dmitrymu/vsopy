@@ -1,6 +1,6 @@
 import os
 import sys
-module_path = os.path.abspath(os.path.join('../src'))
+module_path = os.path.abspath(os.path.join('.'))
 if module_path not in sys.path:
     sys.path.append(module_path)
 
@@ -20,7 +20,7 @@ import json
 import vsopy.data
 import vsopy.reduce
 import vsopy.phot
-import vsopy.plot as vp
+import plot as vp
 import matplotlib.pyplot as plt
 from vsopy.util import Aperture, Settings
 
