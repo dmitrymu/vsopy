@@ -1,8 +1,13 @@
 pytest
 pytest-cov
 psutil
+plotnine
+uncertainties
 
-vsopy @git+https://github.com/dmitrymu/vsopy-pkg@main
+vsopy @git+https://github.com/dmitrymu/vsopy-pkg@dev
+
+imexam
+ginga
 
 # Jupyter notebooks and extensions
 ipykernel

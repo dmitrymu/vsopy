@@ -2,6 +2,7 @@ import ipywidgets as widgets
 import itertools
 from astropy.table import QTable, join
 import vsopy.phot
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib import ticker
 import numpy as np
@@ -68,7 +69,9 @@ class PreviewDiffPhotometry:
         self.session_path = layout.root_dir
         self.provider_ = vsopy.phot.BatchDataProvider(layout)
         self.settings_ = settings
-        self.bands_ = vsopy.util.band_pairs(settings.bands)
+        bands = vsopy.util.band_pairs(vsopy.util.ordered_bands(settings.bands))
+        reverted_bands = [(b, a) for a, b in bands]
+        self.bands_ = list(itertools.chain(bands, reverted_bands))
         self.xfm_ = None
 
         self.wgt_band_ = widgets.Dropdown(
@@ -92,6 +95,18 @@ class PreviewDiffPhotometry:
             rows=len(self.auids_),
             layout=widgets.Layout(width='95%')
         )
+
+        band = self.bands_[self.wgt_band_.value]
+        self.wgt_thr_0 = widgets.BoundedIntText(value=95,
+                                                min=0,
+                                                max=100,
+                                                description=f'Filter % for {band[0]}',
+                                                style={'description_width': 'initial'})
+        self.wgt_thr_1 = widgets.BoundedIntText(value=95,
+                                                min=0,
+                                                max=100,
+                                                description=f'Filter % for {band[1]}',
+                                                style={'description_width': 'initial'})
         self.band_updated()
 
         imin = 0
@@ -107,7 +122,9 @@ class PreviewDiffPhotometry:
                                       widgets.HBox([widgets.VBox([widgets.Label("Comp star"), self.wgt_comp_], layout=widgets.Layout(width='50%')),
                                                     widgets.VBox([widgets.Label("Check star"), self.wgt_check_], layout=widgets.Layout(width='50%'))],
                                                     layout=widgets.Layout(width='100%')),
-                                      widgets.HBox([self.wgt_time_, self.wgt_range_])])
+                                      widgets.HBox([self.wgt_time_, self.wgt_range_]),
+                                      widgets.HBox([self.wgt_thr_0, self.wgt_thr_1])
+                                      ])
 
     @property
     def settings(self):
@@ -135,12 +152,23 @@ class PreviewDiffPhotometry:
         return (f"{row['auid']}: Σ{band[0]}={row[band[0]]:.3g}, "
                 f"Σ{band[1]}={row[band[1]]:.3g},  N={row['N']}")
 
+    def excluded_stars(self):
+        # result = []
+        # if self.wgt_comp_.value is not None:
+        #     result.append(self.wgt_comp_.value)
+        # if self.wgt_check_.value is not None:
+        #     result.append(self.wgt_check_.value)
+        # return result
+        return [self.wgt_comp_.value, self.wgt_check_.value]
+
     def band_updated(self, *args):
         band = self.bands_[self.wgt_band_.value]
-        self.xfm_ = vsopy.phot.batch_create_simple_transform(self.provider_, band)
+        self.xfm_ = vsopy.phot.batch_create_simple_transform(self.provider_, band, self.excluded_stars())
         self.auids_ = self.provider_.sequence_band_pair(band)['auid']
         self.table_comp_ = self.table_target_err(band)
         self.table_comp_.sort(band[0])
+        self.wgt_thr_0.description=f'Filter % for {band[0]}'
+        self.wgt_thr_1.description=f'Filter % for {band[1]}'
         self.wgt_comp_.options=[
             (self.format_label(row, band), n)
             for row, n in zip(self.table_comp_, itertools.count())]
@@ -152,12 +180,15 @@ class PreviewDiffPhotometry:
         return np.sqrt(np.sum(data[band]['err']**2) / len(data))
 
     def band_target_err(self, band, comp):
-        dph = vsopy.phot.batch_apply_simple_transform(self.provider_, self.xfm_, band, comp, self.provider_.target_auid)
-        if len(dph) > 0:
-            err_a = self.target_err(dph, band[0])
-            err_b = self.target_err(dph, band[1])
-            return err_a, err_b, len(dph)
-        else:
+        try:
+            dph = vsopy.phot.batch_apply_simple_transform(self.provider_, self.xfm_, band, comp, self.provider_.target_auid, use_lsq=True)
+            if len(dph) > 0:
+                err_a = self.target_err(dph, band[0])
+                err_b = self.target_err(dph, band[1])
+                return err_a, err_b, len(dph)
+            else:
+                return np.nan, np.nan, 0
+        except Exception as e:
             return np.nan, np.nan, 0
 
     def table_target_err(self, band):
@@ -180,13 +211,16 @@ class PreviewDiffPhotometry:
         return np.sqrt(np.sum((data - goal)**2) / len(data))
 
     def band_check_err(self, band, comp, check):
-        dph = vsopy.phot.batch_apply_simple_transform(self.provider_, self.xfm_, band, comp, check)
-        check_data = self.provider_.check_band_pair(band, check)
-        if len(dph) > 0:
-            err_a = self.check_err(dph[band[0]]['mag'], check_data[band[0]]['mag'])
-            err_b = self.check_err(dph[band[1]]['mag'], check_data[band[1]]['mag'])
-            return err_a, err_b, len(dph)
-        else:
+        try:
+            dph = vsopy.phot.batch_apply_simple_transform(self.provider_, self.xfm_, band, comp, check, use_lsq=True)
+            check_data = self.provider_.check_band_pair(band, check)
+            if len(dph) > 0:
+                err_a = self.check_err(dph[band[0]]['mag'], check_data[band[0]]['mag'])
+                err_b = self.check_err(dph[band[1]]['mag'], check_data[band[1]]['mag'])
+                return err_a, err_b, len(dph)
+            else:
+                return np.nan, np.nan, 0
+        except Exception as e:
             return np.nan, np.nan, 0
 
     def table_check_err(self, band, comp):
@@ -205,7 +239,7 @@ class PreviewDiffPhotometry:
         })
 
 
-    def plot(self, b=0, cm=0, ck=0, tr=(0,1)):
+    def plot(self, b=0, cm=0, ck=0, tr=(0,1), thr_0=95, thr_1=95):
         band = self.bands_[b]
         comp = self.table_comp_[cm]['auid']
         check = self.table_check_[ck]['auid']
@@ -216,23 +250,35 @@ class PreviewDiffPhotometry:
         self.settings_.photometry(band).set_start(self.provider_.batches_['time'][tr[0]].jd)
         self.settings_.photometry(band).set_finish(self.provider_.batches_['time'][tr[1]].jd)
         batches = self.provider_.batches_[tr[0]:tr[1]+1]
-        dph = join(vsopy.phot.batch_apply_simple_transform(self.provider_, self.xfm_, band, comp), batches, 'batch_id')
-        dph_check = join(vsopy.phot.batch_apply_simple_transform(self.provider_, self.xfm_, band, comp, check), batches, 'batch_id')
+        dph = join(vsopy.phot.batch_apply_simple_transform(self.provider_, self.xfm_, band, comp, use_lsq=True), batches, 'batch_id')
+        dph_check = join(vsopy.phot.batch_apply_simple_transform(self.provider_, self.xfm_, band, comp, check, use_lsq=True), batches, 'batch_id')
 
-        def plot_band(ax, data, band):
-            ax.errorbar(data['time'].jd, data[f'{band}']['mag'],
-                        yerr=data[f'{band}']['err']/2, fmt='.',
+        err_thr_0 = np.percentile(dph[band[0]]['err'], self.wgt_thr_0.value)
+        err_thr_1 = np.percentile(dph[band[1]]['err'], self.wgt_thr_0.value)
+        flt_pass = (dph[band[0]]['err'] < err_thr_0) & (dph[band[1]]['err'] < err_thr_1)
+        # rejected = np.where(~flt_pass)[0]
+        # self.settings_.photometry(band).set_rejected(rejected)
+
+        def plot_band(ax, data, band, flt):
+            ax.errorbar(data['time'][flt].jd, data[f'{band}']['mag'][flt],
+                        yerr=data[f'{band}']['err'][flt]/2, fmt='.',
                         label=band, color=BAND_COLOR[band])
+            ax.plot(data['time'][~flt].jd, data[f'{band}']['mag'][~flt],
+                        'o',
+                        label=f'{band} uncert', color=BAND_COLOR[band], alpha=0.3)
+            # ax.errorbar(data['time'].jd, data[f'_{band}']['mag'],
+            #             yerr=data[f'_{band}']['err']/2, fmt='+',
+            #             label=f"${{{band}'}}$", color=BAND_COLOR[band])
 
         star = self.provider_.sequence_.meta.get('star', '???')
 
-        fig = plt.figure(figsize=(10.24, 10.24))
-        gs = fig.add_gridspec(3, 1)
+        fig = plt.figure(figsize=(10.24, 12.80))
+        gs = fig.add_gridspec(4, 2)
         #ax = plt.subplot()
         #flt = dph[f'check {band[0]}']['err'] < 1 * u.mag
-        ax = fig.add_subplot(gs[0, 0])
-        plot_band(ax, dph, band[0])
-        plot_band(ax, dph, band[1])
+        ax = fig.add_subplot(gs[0, :])
+        plot_band(ax, dph, band[0], flt_pass)
+        plot_band(ax, dph, band[1], flt_pass)
         ax.invert_yaxis()
         fmter = ScalarFormatter()
         fmter.set_powerlimits((-4, 8))
@@ -242,22 +288,45 @@ class PreviewDiffPhotometry:
         ax.set_ylabel('Magnitude')
         ax.set_title(f'{star} Light Curves ${{{band[0]}}}$ and ${{{band[1]}}}$')
 
-        ax3 = fig.add_subplot(gs[1, 0])
+        ax3 = fig.add_subplot(gs[1, :])
         ax3.xaxis.set_major_formatter(fmter)
         ax3.plot(dph['time'].jd, (dph[band[0]]['err']),
                  '.', label=f'Target {band[0]}', color=BAND_COLOR[band[0]])
+        ax3.axhline(y=err_thr_0.value, color=BAND_COLOR[band[0]], linestyle='--', linewidth=2, alpha=0.5)
+        # ax3.plot(dph['time'].jd, (dph[f"_{band[0]}"]['err']),
+        #          '+', label=f'Target {band[0]}', color=BAND_COLOR[band[0]])
         ax3.plot(dph['time'].jd, (dph[band[1]]['err']),
                  '.', label=f'Target {band[1]}', color=BAND_COLOR[band[1]])
+        ax3.axhline(y=err_thr_1.value, color=BAND_COLOR[band[1]], linestyle='--', linewidth=2, alpha=0.5)
+        # ax3.plot(dph['time'].jd, (dph[f"_{band[1]}"]['err']),
+        #          '+', label=f'Target {band[0]}', color=BAND_COLOR[band[1]])
+        ax3.legend()
         ax3.set_xlabel('JD')
         ax3.set_ylabel('Target uncertainty')
-        ax3.set_title(f'{star} Photometry errors for ${{{band[0]}}}$ and ${{{band[1]}}}$')
+        ax3.set_title(f'{star} Photometry Uncertainty for ${{{band[0]}}}$ and ${{{band[1]}}}$')
 
-        ax4 = fig.add_subplot(gs[2, 0])
+        ax4 = fig.add_subplot(gs[2, :])
         ax4.plot(dph['time'].jd, ((dph_check[band[0]]['mag'] - check_data[band[0]]['mag'])),
-                 '+', label=f'Target {band[0]}', color=BAND_COLOR[band[0]])
+                 '.', label=f'Target {band[0]}', color=BAND_COLOR[band[0]])
         ax4.plot(dph['time'].jd, ((dph_check[band[1]]['mag'] - check_data[band[1]]['mag'])),
-                 '+', label=f'Target {band[1]}', color=BAND_COLOR[band[1]])
-        ax4.set_ylabel('Check star error')
+                 '.', label=f'Target {band[1]}', color=BAND_COLOR[band[1]])
+        # # ax4.plot(dph['time'].jd, ((dph_check[f"_{band[0]}"]['mag'] - check_data[band[0]]['mag'])),
+        # #          '+', label=f'Target {band[0]}', color=BAND_COLOR[band[0]])
+        # # ax4.plot(dph['time'].jd, ((dph_check[f"_{band[1]}"]['mag'] - check_data[band[1]]['mag'])),
+        # #          '+', label=f'Target {band[1]}', color=BAND_COLOR[band[1]])
+        ax4.set_ylabel('Check Star Error')
+
+        ax5 = fig.add_subplot(gs[3, :])
+        ax5.hist((dph_check[band[0]]['mag'] - check_data[band[0]]['mag']),
+                 color=BAND_COLOR[band[0]],  alpha=0.5,
+                 bins=10, label=f'{band[0]}')
+        ax5.hist((dph_check[band[1]]['mag'] - check_data[band[1]]['mag']),
+                 color=BAND_COLOR[band[1]], alpha=0.5,
+                 bins=10, label=f'{band[1]}')
+        ax5.legend()
+        ax5.set_xlabel('Error')
+        ax5.set_ylabel('Frequency')
+        ax5.set_title('Error Distribution for Check Star')
 
         plt.tight_layout()
         plt.show()
@@ -268,6 +337,8 @@ class PreviewDiffPhotometry:
                         b=self.wgt_band_,
                         cm=self.wgt_comp_,
                         ck=self.wgt_check_,
-                        tr=self.wgt_time_)
+                        tr=self.wgt_time_,
+                        thr_0=self.wgt_thr_0,
+                        thr_1=self.wgt_thr_1)
         )
         display(self.wgt_ui_, w)

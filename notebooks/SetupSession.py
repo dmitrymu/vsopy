@@ -257,7 +257,7 @@ class PreviewPhotometry:
 
     def stars_photometry(self, r, r_in=None, r_out=None, tile=60, ncols=6, width=12.80):
         self.settings_.set_aperture(Aperture(r, r_in, r_out))
-        self.ph = vsopy.phot.measure_photometry(self.image_, self.centroid, self.settings_.aperture)
+        self.ph = vsopy.phot.measure_photometry(self.image_, self.centroid, self.settings_.aperture, extended=True)
         self.ph.remove_column('radec2000')
         self.ph.rename_column('sky_centroid', 'radec2000')
         nrows = (len(self.ph)+1) // ncols + 1
@@ -273,7 +273,7 @@ class PreviewPhotometry:
                                     subplot=cell)
                     ax.set_title(f"{self.target_name_ if star['auid'] == self.target_auid_ else star['auid']}\n"
 #                                fr"$\ {self.image_.header['FILTER']}_{{instr}} = {star['M']['mag'].value:.3g}$"
-                                '\n'
+                                f"FWHM {star['fwhm']:.3g}\n"
                                 f"SNR {star['snr']:.3g}\n"
                                 f"Peak {star['peak']:.2%}")
                     if not self.settings_.is_star_enabled(star['auid']):
